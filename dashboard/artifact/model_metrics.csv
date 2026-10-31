@@ -1,0 +1,2 @@
+model,auc,base_rate,folds
+"Random forest, High vs not High",0.694,0.445,5

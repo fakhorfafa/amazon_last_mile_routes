@@ -1,0 +1,14 @@
+feature,importance
+path_km,0.1225
+n_stops,0.1207
+path_vs_nn,0.1098
+service_time_h,0.0984
+first_leg_km,0.0974
+capacity_util,0.0826
+n_packages,0.0811
+tw_pct,0.0789
+failed_pct,0.0516
+n_zones,0.0511
+zone_switches_per_zone,0.0488
+departure_hour_utc,0.0316
+zones_revisited_pct,0.0255

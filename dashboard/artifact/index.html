@@ -1,0 +1,400 @@
+<meta name="dash-one-writer">
+<style>
+.lm { display: grid; gap: var(--cds-gap-xl); font-family: var(--font-anthropic-sans); }
+.lm-head h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+.lm-head p { margin: var(--cds-gap-xs) 0 0; color: var(--color-fg-muted); max-width: 68ch; }
+.lm b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.lm-tiles { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+.lm-tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); }
+.lm-tile .v { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+.lm-tile .l { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.lm-sec { display: grid; gap: var(--cds-gap-md); }
+.lm-sec > h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.lm-grid { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
+.lm-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; display: grid; gap: var(--cds-gap-sm); align-content: start; }
+.lm-card h3 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.lm-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin: 0; }
+.lm-chart { position: relative; min-height: 240px; }
+.lm-chart.tall { min-height: 340px; }
+.lm-legend { display: flex; gap: var(--cds-gap-md); flex-wrap: wrap; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.lm-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+.lm-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.lm-scroll { overflow-x: auto; }
+.lm table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.lm th, .lm td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); text-align: right; white-space: nowrap; }
+.lm th:first-child, .lm td:first-child { text-align: left; }
+.lm th { color: var(--color-fg-muted); font-weight: 500; }
+.lm select { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); max-width: 100%; }
+.lm-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 2; }
+.lm-tip .k { color: var(--cds-text-secondary); }
+.lm-tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.lm svg text { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+[data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+[data-dash-source-state=empty] { color: transparent; }
+.lm-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.lm-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+</style>
+
+<div class="lm">
+  <header class="lm-head" id="top-summary">
+    <h1>What makes a high-quality delivery route?</h1>
+    <p>High-scored routes average <b data-draw="num" data-source="by_score" data-field="n_stops" data-where="route_score=High" data-fmt="int">—</b> stops and <b data-draw="num" data-source="by_score" data-field="path_km" data-where="route_score=High" data-fmt="km">—</b> of driving, compared with <b data-draw="num" data-source="by_score" data-field="n_stops" data-where="route_score=Medium" data-fmt="int">—</b> stops and <b data-draw="num" data-source="by_score" data-field="path_km" data-where="route_score=Medium" data-fmt="km">—</b> for Medium routes. Smaller workloads score better, while zone order barely differs between scores.</p>
+  </header>
+
+  <div class="lm-tiles">
+    <div class="lm-tile"><div class="v" data-draw="num" data-source="kpis" data-field="routes" data-fmt="int">—</div><div class="l">Routes (Jul–Aug 2018)</div></div>
+    <div class="lm-tile"><div class="v" data-draw="num" data-source="kpis" data-field="stops" data-fmt="compact">—</div><div class="l">Delivery stops</div></div>
+    <div class="lm-tile"><div class="v" data-draw="num" data-source="kpis" data-field="packages" data-fmt="compact">—</div><div class="l">Packages</div></div>
+    <div class="lm-tile"><div class="v" data-draw="num" data-source="kpis" data-field="high_pct" data-fmt="pct">—</div><div class="l">Routes scored High</div></div>
+    <div class="lm-tile"><div class="v" data-draw="num" data-source="model_metrics" data-field="auc" data-row="0" data-fmt="dec2">—</div><div class="l">Model ROC AUC (High vs not)</div></div>
+  </div>
+
+  <section class="lm-sec" id="by-city">
+    <h2>Quality by city</h2>
+    <div class="lm-grid">
+      <div class="lm-card">
+        <h3>Route score mix</h3>
+        <p class="lm-note">Share of each city's routes that Amazon labeled High, Medium or Low.</p>
+        <div class="lm-legend"><span><i data-swatch="0"></i>High</span><span><i data-swatch="1"></i>Medium</span><span><i data-swatch="2"></i>Low</span></div>
+        <div class="lm-chart dash-skeleton" data-draw="cityMix" data-source="city_mix"></div>
+      </div>
+      <div class="lm-card">
+        <h3>City summary</h3>
+        <p class="lm-note">Averages per route. Path is the straight-line length of the stop sequence the driver actually drove, in km.</p>
+        <div class="lm-scroll">
+          <table data-source="city_mix" data-row-key="city">
+            <thead><tr><th data-field="city">City</th><th data-field="routes">Routes</th><th data-field="avg_stops">Avg stops</th><th data-field="avg_path_km">Avg path km</th><th data-field="high_pct">% High</th></tr></thead>
+            <tbody data-draw="cityTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lm-sec" id="by-score">
+    <h2>How High routes differ</h2>
+    <div class="lm-grid">
+      <div class="lm-card">
+        <h3>Driven path vs. nearest-neighbour tour</h3>
+        <p class="lm-note">Actual path length ÷ a greedy nearest-neighbour tour of the same stops. A value of 1.00 means the same length as the heuristic.</p>
+        <div class="lm-legend"><span><i data-swatch="0"></i>High</span><span><i data-swatch="1"></i>Medium</span><span><i data-swatch="2"></i>Low</span></div>
+        <div class="lm-chart dash-skeleton" data-draw="histPath" data-source="hist_path"></div>
+      </div>
+      <div class="lm-card">
+        <h3>Share of zones revisited</h3>
+        <p class="lm-note">Share of a route's planning zones that the driver left and returned to later. The curves overlap, so zone order does not separate the scores.</p>
+        <div class="lm-legend"><span><i data-swatch="0"></i>High</span><span><i data-swatch="1"></i>Medium</span><span><i data-swatch="2"></i>Low</span></div>
+        <div class="lm-chart dash-skeleton" data-draw="histZone" data-source="hist_zone"></div>
+      </div>
+    </div>
+    <div class="lm-card">
+      <h3>Average route profile by score</h3>
+      <p class="lm-note">Only 102 of the 6,112 routes are Low, so averages in the Low column are less stable.</p>
+      <div class="lm-scroll">
+        <table data-source="by_score" data-row-key="route_score">
+          <thead><tr><th data-field="route_score">Score</th><th data-field="routes">Routes</th><th data-field="n_stops">Stops</th><th data-field="n_packages">Packages</th><th data-field="path_km">Path km</th><th data-field="path_vs_nn">Path ÷ NN</th><th data-field="zones_revisited_pct">Zones revisited</th><th data-field="tw_pct">Pkgs with time window</th></tr></thead>
+          <tbody data-draw="scoreTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="lm-sec" id="model">
+    <h2>What predicts a High score</h2>
+    <div class="lm-grid">
+      <div class="lm-card">
+        <h3>Feature importance</h3>
+        <p class="lm-note">Random forest separating High from not-High routes, with 5-fold cross-validation. Workload and path length lead the ranking. Zone revisits rank last.</p>
+        <div class="lm-chart tall dash-skeleton" data-draw="importance" data-source="model_importance"></div>
+      </div>
+      <div class="lm-card">
+        <h3>Routes per day</h3>
+        <p class="lm-note">Training routes by execution date.</p>
+        <div class="lm-chart dash-skeleton" data-draw="daily" data-source="daily"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lm-sec" id="sample-routes">
+    <h2>Sample routes in Boston</h2>
+    <div class="lm-card">
+      <h3>Driver's actual stop sequence</h3>
+      <p class="lm-note">Coordinates were obfuscated by Amazon. The ring marks the station, pinned to the frame edge when the station lies outside it. Hover a stop to see its order and zone.</p>
+      <select data-draw="routePick" data-source="route_list" aria-label="Choose a sample route"></select>
+      <div class="lm-chart tall dash-skeleton" data-draw="routeMap" data-source="sample_routes"></div>
+    </div>
+  </section>
+
+  <p class="lm-note">Source: 2021 Amazon Last Mile Routing Research Challenge, training set (Merchán et al., Transportation Science 2024), CC BY-NC 4.0. Features and model were computed offline in Python.</p>
+</div>
+
+<script>
+const N = (v) => +v;
+const SCORES = ['High', 'Medium', 'Low'];
+dash.calc('kpis', {
+  inputs: ['routes'], title: 'Headline totals', description: 'Route count, total stops and packages, and the share of routes scored High.',
+  fn: (routes) => [{
+    routes: routes.length,
+    stops: d3.sum(routes, (r) => +r.n_stops),
+    packages: d3.sum(routes, (r) => +r.n_packages),
+    high_pct: routes.filter((r) => r.route_score === 'High').length / routes.length,
+  }],
+});
+dash.calc('city_mix', {
+  inputs: ['routes'], title: 'Scores by city', description: 'Per city: route count, score shares, average stops and path length.',
+  fn: (routes) => d3.rollups(routes, (g) => ({
+    routes: g.length,
+    high_pct: g.filter((r) => r.route_score === 'High').length / g.length,
+    medium_pct: g.filter((r) => r.route_score === 'Medium').length / g.length,
+    low_pct: g.filter((r) => r.route_score === 'Low').length / g.length,
+    avg_stops: d3.mean(g, (r) => +r.n_stops),
+    avg_path_km: d3.mean(g, (r) => +r.path_km),
+  }), (r) => r.city).map(([city, v]) => ({city, ...v})).sort((a, b) => d3.ascending(a.city, b.city)),
+});
+dash.calc('by_score', {
+  inputs: ['routes'], title: 'Averages by score', description: 'Per route score: route count and average route features.',
+  fn: (routes) => ['High', 'Medium', 'Low'].map((s) => {
+    const g = routes.filter((r) => r.route_score === s);
+    const m = (k) => d3.mean(g, (r) => +r[k]);
+    return {route_score: s, routes: g.length, n_stops: m('n_stops'), n_packages: m('n_packages'), path_km: m('path_km'),
+      path_vs_nn: m('path_vs_nn'), zones_revisited_pct: m('zones_revisited_pct'), tw_pct: m('tw_pct')};
+  }),
+});
+const histCalc = (field, lo, hi, step) => (routes) => {
+  const edges = d3.range(lo, hi + step / 2, step);
+  return ['High', 'Medium', 'Low'].flatMap((s) => {
+    const v = routes.filter((r) => r.route_score === s).map((r) => Math.min(Math.max(+r[field], lo), hi - 1e-9));
+    const bins = d3.bin().domain([lo, hi]).thresholds(edges)(v);
+    return bins.map((b) => ({route_score: s, bin: b.x0, share: b.length / v.length}));
+  });
+};
+dash.calc('hist_path', {inputs: ['routes'], title: 'Path ÷ NN distribution', description: 'Share of routes per path ÷ nearest-neighbour bin (0.80–1.40, clipped), by score.', fn: histCalc('path_vs_nn', 0.8, 1.4, 0.025)});
+dash.calc('hist_zone', {inputs: ['routes'], title: 'Zone revisit distribution', description: 'Share of routes per zones-revisited bin (0–30%, clipped), by score.', fn: histCalc('zones_revisited_pct', 0, 0.3, 0.02)});
+dash.calc('daily', {
+  inputs: ['routes'], title: 'Routes per day', description: 'Number of routes by execution date.',
+  fn: (routes) => d3.rollups(routes, (g) => g.length, (r) => r.date).map(([date, n]) => ({date, routes: n})).sort((a, b) => d3.ascending(a.date, b.date)),
+});
+dash.calc('route_list', {
+  inputs: ['sample_routes'], title: 'Sample route list', description: 'The six Boston sample routes with their score and stop count.',
+  fn: (sample_routes) => d3.rollups(sample_routes, (g) => ({route_score: g[0].route_score, stops: g.length - 1}), (r) => r.route_id).map(([route_id, v]) => ({route_id, ...v})),
+});
+
+window.LM = {
+  fmt: {
+    int: d3.format(','), compact: (v) => new Intl.NumberFormat('en', {notation: 'compact', maximumFractionDigits: 1}).format(v),
+    pct: d3.format('.1%'), dec2: d3.format('.2f'), dec3: d3.format('.3f'), km: (v) => d3.format('.1f')(v) + ' km',
+  },
+  rowFor(el, rows) {
+    if (el.dataset.row != null) return rows[+el.dataset.row];
+    const w = new URLSearchParams(el.dataset.where || '');
+    return rows.find((r) => [...w].every(([k, v]) => String(r[k]) === v));
+  },
+  fail(el, d) {
+    el.replaceChildren();
+    if (d.status === 'error' || d.status === 'connect') {
+      el.classList.remove('dash-skeleton');
+      const f = document.createElement('div'); f.className = 'lm-fail'; f.textContent = 'Failed to load'; el.append(f);
+    }
+  },
+  tip(el) {
+    const t = document.createElement('div'); t.className = 'lm-tip'; t.hidden = true; el.append(t);
+    return {
+      show(x, y, nodes) {
+        t.replaceChildren(...nodes); t.hidden = false;
+        const w = t.offsetWidth, W = el.clientWidth;
+        t.style.left = Math.max(0, Math.min(W - w, x + 12)) + 'px'; t.style.top = Math.max(0, y - t.offsetHeight - 8) + 'px';
+      },
+      hide() { t.hidden = true; },
+    };
+  },
+  line(text, cls, color) {
+    const d = document.createElement('div');
+    if (color) { const i = document.createElement('i'); i.style.background = color; d.append(i); }
+    const s = document.createElement('span'); s.textContent = text; if (cls) s.className = cls; d.append(s); return d;
+  },
+  svg(el, h) {
+    const W = el.clientWidth || 600;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${h}`).attr('height', h);
+    return {svg, W};
+  },
+  cleanAxis(g) { g.attr('font-size', null).attr('font-family', null); g.selectAll('.domain').style('stroke', 'var(--cds-chart-axis)'); g.selectAll('.tick line').style('stroke', 'var(--cds-chart-grid)'); },
+};
+
+dash.onData(() => {
+  document.querySelectorAll('[data-swatch]').forEach((i) => { i.style.background = dash.colors[+i.dataset.swatch]; });
+});
+
+dash.draw('num', (el) => {
+  const d = dash.data(el.dataset.source);
+  if (d.status !== 'ok') { el.textContent = '—'; return; }
+  const r = LM.rowFor(el, d.data);
+  el.textContent = r ? LM.fmt[el.dataset.fmt || 'int'](+r[el.dataset.field]) : '—';
+});
+
+const fillTable = (tbody, rows, cells) => {
+  tbody.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    cells.forEach(([k, f]) => { const td = document.createElement('td'); td.textContent = f ? f(+r[k]) : r[k]; tr.append(td); });
+    return tr;
+  }));
+};
+dash.draw('cityTable', (tb) => {
+  const d = dash.data('city_mix');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  fillTable(tb, d.data, [['city'], ['routes', LM.fmt.int], ['avg_stops', d3.format('.0f')], ['avg_path_km', d3.format('.1f')], ['high_pct', LM.fmt.pct]]);
+});
+dash.draw('scoreTable', (tb) => {
+  const d = dash.data('by_score');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  fillTable(tb, d.data, [['route_score'], ['routes', LM.fmt.int], ['n_stops', d3.format('.1f')], ['n_packages', d3.format('.1f')], ['path_km', d3.format('.1f')], ['path_vs_nn', LM.fmt.dec3], ['zones_revisited_pct', LM.fmt.pct], ['tw_pct', LM.fmt.pct]]);
+});
+
+dash.draw('cityMix', (el) => {
+  const d = dash.data('city_mix');
+  if (d.status !== 'ok') return LM.fail(el, d);
+  el.replaceChildren(); el.classList.remove('dash-skeleton');
+  const rows = d.data, keys = ['high_pct', 'medium_pct', 'low_pct'];
+  const m = {t: 4, r: 8, b: 24, l: 0}, h = rows.length * 40 + m.t + m.b;
+  const {svg, W} = LM.svg(el, h);
+  const probe = svg.append('text').text(rows.reduce((a, r) => r.city.length > a.length ? r.city : a, ''));
+  m.l = probe.node().getComputedTextLength() + 10; probe.remove();
+  const x = d3.scaleLinear([0, 1], [m.l, W - m.r]);
+  const y = d3.scaleBand(rows.map((r) => r.city), [m.t, h - m.b]).padding(0.35);
+  svg.append('g').attr('transform', `translate(0,${h - m.b})`).call(d3.axisBottom(x).ticks(W < 420 ? 4 : 5, '%').tickSize(-(h - m.t - m.b))).call(LM.cleanAxis).call((g) => g.select('.domain').remove());
+  svg.append('g').attr('transform', `translate(${m.l - 6},0)`).call(d3.axisLeft(y).tickSize(0)).call(LM.cleanAxis).call((g) => g.select('.domain').remove());
+  const tip = LM.tip(el);
+  rows.forEach((r) => {
+    let x0 = 0;
+    keys.forEach((k, i) => {
+      const v = +r[k];
+      svg.append('rect').attr('x', x(x0)).attr('y', y(r.city)).attr('width', Math.max(0, x(x0 + v) - x(x0) - 2)).attr('height', y.bandwidth()).attr('rx', 3)
+        .style('fill', dash.colors[i])
+        .on('mousemove', (e) => { const [px, py] = d3.pointer(e, el); tip.show(px, py, [LM.line(r.city, 'k'), ...keys.map((kk, j) => LM.line(`${SCORES[j]}: ${LM.fmt.pct(+r[kk])}`, '', dash.colors[j]))]); })
+        .on('mouseleave', tip.hide);
+      x0 += v;
+    });
+  });
+});
+
+const histDraw = (id, xFmt) => (el) => {
+  const d = dash.data(id);
+  if (d.status !== 'ok') return LM.fail(el, d);
+  el.replaceChildren(); el.classList.remove('dash-skeleton');
+  const rows = d.data.map((r) => ({...r, bin: +r.bin, share: +r.share}));
+  const h = 240, m = {t: 8, r: 12, b: 26, l: 40};
+  const {svg, W} = LM.svg(el, h);
+  const bins = [...new Set(rows.map((r) => r.bin))].sort(d3.ascending);
+  const x = d3.scaleLinear(d3.extent(bins), [m.l, W - m.r]);
+  const y = d3.scaleLinear([0, d3.max(rows, (r) => r.share) * 1.1], [h - m.b, m.t]).nice();
+  svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4, '.0%').tickSize(-(W - m.l - m.r))).call(LM.cleanAxis).call((g) => g.select('.domain').remove());
+  svg.append('g').attr('transform', `translate(0,${h - m.b})`).call(d3.axisBottom(x).ticks(W < 420 ? 4 : 6).tickFormat(xFmt)).call(LM.cleanAxis);
+  SCORES.forEach((s, i) => {
+    const pts = rows.filter((r) => r.route_score === s);
+    svg.append('path').datum(pts).attr('d', d3.line((r) => x(r.bin), (r) => y(r.share)))
+      .style('fill', 'none').style('stroke', dash.colors[i]).style('stroke-width', 2).style('stroke-linejoin', 'round').style('stroke-linecap', 'round');
+  });
+  const rule = svg.append('line').attr('y1', m.t).attr('y2', h - m.b).style('stroke', 'var(--cds-chart-reference)').style('display', 'none');
+  const dots = SCORES.map((s, i) => svg.append('circle').attr('r', 4).style('fill', dash.colors[i]).style('display', 'none'));
+  const tip = LM.tip(el);
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', h - m.t - m.b).style('fill', 'transparent')
+    .on('mousemove', (e) => {
+      const [px, py] = d3.pointer(e, svg.node());
+      const b = bins[Math.max(0, Math.min(bins.length - 1, d3.bisectCenter(bins, x.invert(px))))];
+      rule.attr('x1', x(b)).attr('x2', x(b)).style('display', null);
+      const lines = [LM.line(`${xFmt(b)} bin`, 'k')];
+      SCORES.forEach((s, i) => {
+        const r = rows.find((q) => q.route_score === s && q.bin === b);
+        if (!r) return;
+        dots[i].attr('cx', x(b)).attr('cy', y(r.share)).style('display', null);
+        lines.push(LM.line(`${s}: ${LM.fmt.pct(r.share)} of routes`, '', dash.colors[i]));
+      });
+      const [ex, ey] = d3.pointer(e, el); tip.show(ex, ey, lines);
+    })
+    .on('mouseleave', () => { tip.hide(); rule.style('display', 'none'); dots.forEach((c) => c.style('display', 'none')); });
+};
+dash.draw('histPath', histDraw('hist_path', d3.format('.2f')));
+dash.draw('histZone', histDraw('hist_zone', d3.format('.0%')));
+
+const LABELS = {
+  path_km: 'Path length (km)', n_stops: 'Stops', path_vs_nn: 'Path ÷ NN tour', service_time_h: 'Planned service time',
+  first_leg_km: 'Station → first stop', capacity_util: 'Capacity utilisation', n_packages: 'Packages', tw_pct: 'Pkgs with time window',
+  failed_pct: 'Failed deliveries', n_zones: 'Zones on route', zone_switches_per_zone: 'Zone switches per zone',
+  departure_hour_utc: 'Departure hour', zones_revisited_pct: 'Zones revisited',
+};
+dash.draw('importance', (el) => {
+  const d = dash.data('model_importance');
+  if (d.status !== 'ok') return LM.fail(el, d);
+  el.replaceChildren(); el.classList.remove('dash-skeleton');
+  const rows = d.data.map((r) => ({...r, importance: +r.importance}));
+  const m = {t: 4, r: 44, b: 4, l: 0}, h = rows.length * 24 + m.t + m.b;
+  const {svg, W} = LM.svg(el, h);
+  const probe = svg.append('text').text('Pkgs with time window');
+  m.l = Math.max(...rows.map((r) => { probe.text(LABELS[r.feature] || r.feature); return probe.node().getComputedTextLength(); })) + 10; probe.remove();
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r.importance)], [m.l, W - m.r]);
+  const y = d3.scaleBand(rows.map((r) => r.feature), [m.t, h - m.b]).padding(0.3);
+  const tip = LM.tip(el);
+  rows.forEach((r, i) => {
+    svg.append('text').attr('x', m.l - 8).attr('y', y(r.feature) + y.bandwidth() / 2).attr('dy', '0.32em').attr('text-anchor', 'end').text(LABELS[r.feature] || r.feature);
+    svg.append('rect').attr('x', m.l).attr('y', y(r.feature)).attr('width', Math.max(1, x(r.importance) - m.l)).attr('height', y.bandwidth()).attr('rx', 3)
+      .style('fill', i < 3 ? dash.colors[0] : 'var(--cds-chart-muted)')
+      .on('mousemove', (e) => { const [px, py] = d3.pointer(e, el); tip.show(px, py, [LM.line(LABELS[r.feature] || r.feature, 'k'), LM.line(`Importance ${LM.fmt.dec3(r.importance)}`)]); })
+      .on('mouseleave', tip.hide);
+    if (i < 3) svg.append('text').attr('x', x(r.importance) + 6).attr('y', y(r.feature) + y.bandwidth() / 2).attr('dy', '0.32em').text(LM.fmt.dec3(r.importance));
+  });
+});
+
+dash.draw('daily', (el) => {
+  const d = dash.data('daily');
+  if (d.status !== 'ok') return LM.fail(el, d);
+  el.replaceChildren(); el.classList.remove('dash-skeleton');
+  const rows = d.data.map((r) => ({date: new Date(r.date), routes: +r.routes}));
+  const h = 240, m = {t: 8, r: 8, b: 26, l: 36};
+  const {svg, W} = LM.svg(el, h);
+  const x = d3.scaleBand(rows.map((r) => r.date), [m.l, W - m.r]).padding(0.2);
+  const y = d3.scaleLinear([0, d3.max(rows, (r) => r.routes)], [h - m.b, m.t]).nice();
+  svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r))).call(LM.cleanAxis).call((g) => g.select('.domain').remove());
+  const every = Math.ceil(rows.length / (W < 420 ? 3 : 6));
+  svg.append('g').attr('transform', `translate(0,${h - m.b})`).call(d3.axisBottom(x).tickValues(rows.filter((_, i) => i % every === 0).map((r) => r.date)).tickFormat(d3.utcFormat('%b %-d'))).call(LM.cleanAxis);
+  const tip = LM.tip(el);
+  svg.selectAll('rect.b').data(rows).join('rect').attr('class', 'b').attr('x', (r) => x(r.date)).attr('width', x.bandwidth())
+    .attr('y', (r) => y(r.routes)).attr('height', (r) => y(0) - y(r.routes)).attr('rx', 2).style('fill', dash.colors[0])
+    .on('mousemove', (e, r) => { const [px, py] = d3.pointer(e, el); tip.show(px, py, [LM.line(d3.utcFormat('%b %-d, %Y')(r.date), 'k'), LM.line(`${r.routes} routes`)]); })
+    .on('mouseleave', tip.hide);
+});
+
+window.LM.route = null;
+dash.draw('routePick', (sel) => {
+  const d = dash.data('route_list');
+  const rows = d.status === 'ok' ? d.data : [];
+  sel.replaceChildren(...rows.map((r) => new Option(`${r.route_score} · ${r.stops} stops · route ${r.route_id}`, r.route_id)));
+  if (!LM.route && rows.length) LM.route = rows[0].route_id;
+  sel.value = LM.route || '';
+  sel.onchange = () => { LM.route = sel.value; dash.draw('routeMap'); };
+});
+dash.draw('routeMap', (el) => {
+  const d = dash.data('sample_routes');
+  if (d.status !== 'ok') return LM.fail(el, d);
+  el.replaceChildren(); el.classList.remove('dash-skeleton');
+  const id = LM.route || d.data[0].route_id;
+  const pts = d.data.filter((r) => r.route_id === id).map((r) => ({...r, seq: +r.seq, lat: +r.lat, lng: +r.lng})).sort((a, b) => a.seq - b.seq);
+  const score = pts[0].route_score, color = dash.colors[SCORES.indexOf(score)];
+  const h = 340, pad = 16;
+  const {svg, W} = LM.svg(el, h);
+  const midLat = d3.mean(pts, (p) => p.lat) * Math.PI / 180;
+  const px = (p) => p.lng * Math.cos(midLat);
+  const stops = pts.slice(1);
+  const xs = d3.extent(stops, px), ys = d3.extent(stops, (p) => p.lat);
+  const k = Math.min((W - 2 * pad) / (xs[1] - xs[0] || 1), (h - 2 * pad) / (ys[1] - ys[0] || 1));
+  const ox = (W - k * (xs[1] - xs[0])) / 2, oy = (h - k * (ys[1] - ys[0])) / 2;
+  const X = (p) => ox + (px(p) - xs[0]) * k, Y = (p) => h - oy - (p.lat - ys[0]) * k;
+  svg.append('path').datum(stops).attr('d', d3.line(X, Y)).style('fill', 'none').style('stroke', color).style('stroke-width', 1.5).style('stroke-opacity', 0.7).style('stroke-linejoin', 'round');
+  const tip = LM.tip(el);
+  svg.selectAll('circle.s').data(stops).join('circle').attr('class', 's').attr('cx', X).attr('cy', Y).attr('r', 3.5)
+    .style('fill', color).style('stroke', 'var(--color-panel)').style('stroke-width', 1.5)
+    .on('mousemove', (e, p) => { const [ex, ey] = d3.pointer(e, el); tip.show(ex, ey, [LM.line(`Stop ${p.seq}`, 'k'), LM.line(p.zone_id ? `Zone ${p.zone_id}` : 'No zone')]); })
+    .on('mouseleave', tip.hide);
+  const st = pts[0];
+  const sx = Math.max(pad, Math.min(W - pad, X(st))), sy = Math.max(pad, Math.min(h - pad, Y(st)));
+  svg.append('circle').attr('cx', sx).attr('cy', sy).attr('r', 8).style('fill', 'none').style('stroke', 'var(--color-fg)').style('stroke-width', 2.5);
+});
+</script>

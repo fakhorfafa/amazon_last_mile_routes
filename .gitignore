@@ -1,3 +1,4 @@
 data/
 __pycache__/
 *.pyc
+dashboard/artifact/index_doc.json
