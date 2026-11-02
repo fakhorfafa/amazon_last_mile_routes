@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="data.js"></script>
+<script src="extra.js"></script>
 <style>
 /* Layout: icon rail + full-bleed map stage with floating glass panels (overview); scrolling views for analysis and routes. */
 :root {
@@ -159,6 +160,13 @@ th { color: var(--text-secondary); font-weight: 600; }
 select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary); max-width: 100%; }
 .insights li { margin-bottom: 6px; }
+.sec-h { font-size: 19px; margin: 36px 0 0; letter-spacing: -0.01em; }
+.formula { font-size: 15px; padding: 12px 14px; border-radius: 14px; background: var(--lg-sel); box-shadow: inset 0 1px 0 var(--lg-hi); margin: 4px 0 14px; font-variant-numeric: tabular-nums; }
+.formula .lhs { color: var(--text-secondary); }
+.formula b { font-weight: 650; }
+.cellbar { display: inline-block; height: 7px; border-radius: 3px; background: var(--s-high); opacity: .55; margin-right: 6px; vertical-align: 0; }
+table.sortable th button { font: inherit; font-weight: 600; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+table.sortable th button:focus-visible { outline: 2px solid var(--s-high); outline-offset: 2px; border-radius: 4px; }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 
 @media (max-width: 900px) {
@@ -349,6 +357,39 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
       </div>
       <section class="card" style="margin-top:16px"><h2 data-i18n="cityTableTitle"></h2><div class="scroll"><table id="cityTable"></table></div></section>
       <section class="card" style="margin-top:16px"><h2 data-i18n="scoreTableTitle"></h2><div class="scroll"><table id="scoreTable"></table></div></section>
+
+      <!-- High vs Low -->
+      <h2 class="sec-h" data-i18n="xHlSection"></h2>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="xHlTitle"></h2><p class="note" id="xHlNote"></p><div class="chart" style="height:360px"><canvas id="xHl"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xHourTitle"></h2><p class="note" data-i18n="xHourNote"></p><div class="chart" style="height:360px"><canvas id="xHour"></canvas></div></section>
+      </div>
+
+      <!-- Capacity -->
+      <h2 class="sec-h" data-i18n="xCapSection"></h2>
+      <div class="grid kpis" id="xCapKpis"></div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="xCapHistTitle"></h2><p class="note" data-i18n="xCapHistNote"></p><div class="legend" id="xCapLegend"></div><div class="chart"><canvas id="xCapHist"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xCapStTitle"></h2><p class="note" data-i18n="xCapStNote"></p><div class="chart" style="height:380px"><canvas id="xCapSt"></canvas></div></section>
+      </div>
+
+      <!-- Service time -->
+      <h2 class="sec-h" data-i18n="xSvcSection"></h2>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="xSvcTitle"></h2><p class="note" id="xSvcNote"></p><div class="chart"><canvas id="xSvc"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xSvcModelTitle"></h2><p class="note" data-i18n="xSvcModelNote"></p>
+          <div class="formula" id="xSvcFormula"></div>
+          <div class="scroll"><table id="xSvcTable"></table></div>
+          <p class="note" id="xSvcFit" style="margin-top:10px"></p>
+        </section>
+      </div>
+
+      <!-- Station benchmark -->
+      <h2 class="sec-h" data-i18n="xStSection"></h2>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="xStScatterTitle"></h2><p class="note" id="xStScatterNote"></p><div class="chart" style="height:340px"><canvas id="xStScatter"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xStTableTitle"></h2><p class="note" data-i18n="xStTableNote"></p><div class="scroll"><table id="xStTable" class="sortable"></table></div></section>
+      </div>
       <footer data-i18n="footer"></footer>
     </section>
 
@@ -649,6 +690,176 @@ function renderAnalysis() {
   const bs = D.by_score, top = imp.slice(0, 3).map(i => T.labels[i.feature]);
   const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
   insights.innerHTML = T.insights(bs, fmt, pct, best, top, D.model.auc).map(t => `<li>${t}</li>`).join("");
+  renderExtra();
+}
+
+/* ---------- Extra analyses (High vs Low, capacity, service time, stations) ---------- */
+const X = window.ALMRRC_X;
+Object.assign(I18N.en, {
+  xHlSection: "Route quality: High vs Low",
+  xHlTitle: "What separates High from Low routes",
+  xHlNote: (h, l, auc) => `Standardized difference (Cohen's d) between ${h} High and ${l} Low routes. Bars to the right are higher on High routes. A High-vs-Low random forest reaches a cross-validated AUC of ${auc}.`,
+  xHlAxis: "Difference (High − Low, in standard deviations)",
+  xHourTitle: "Share of High routes by departure hour",
+  xHourNote: "Departure hour in UTC (US local time is 4–7 hours earlier). Hours with fewer than 30 routes are left out.",
+  xCapSection: "Fleet capacity",
+  xCapKpi: ["median capacity used", "routes under 50% full", "routes over 95% full"],
+  xCapHistTitle: "Capacity utilization per route",
+  xCapHistNote: "Total package volume ÷ vehicle capacity. Package volume ignores packing gaps, so the true load is somewhat higher.",
+  xCapBands: ["Under 50% (fleet too large)", "50–95%", "Over 95% (nearly full)"],
+  xCapStTitle: "Under- and over-loaded routes by station",
+  xCapStNote: "Share of each station's routes below 50% or above 95% of vehicle capacity, sorted by median utilization.",
+  xUnder: "Under 50%", xOver: "Over 95%", xMedian: "median",
+  xSvcSection: "Service time per stop",
+  xSvcTitle: "Planned service time by packages per stop",
+  xSvcNote: n => `Median and middle 50% of ${n} stops. Stops with 10 or more packages are grouped as 10.`,
+  xSvcMedian: "Median", xSvcIqr: "Middle 50%", xSvcAxis: "Seconds per stop", xSvcPkgs: "Packages at the stop",
+  xSvcModelTitle: "Service-time model",
+  xSvcModelNote: "Linear fit of Amazon's planned service time per stop. The data holds planned times, not measured stop durations.",
+  xSvcFit: (rl, rg, mae) => `R² ${rl} for the linear model and ${rg} for a gradient-boosting model that adds the largest package dimension, time windows and city (mean error ${mae} s). Package count explains most of what is predictable; the rest varies stop by stop.`,
+  xSvcCols: ["City", "Median per stop (s)", "Seconds per package"],
+  xStSection: "Station benchmark",
+  xStScatterTitle: "Delivery density vs. route quality",
+  xStScatterNote: r => `Each circle is a station, sized by route count. Correlation between packages per stop and share of High routes: r = ${r}.`,
+  xStPps: "Packages per stop", xStHigh: "% High routes",
+  xStTableTitle: "Station scorecard",
+  xStTableNote: "Click a column to sort. Stops per service hour uses planned service time only, because drive time needs the travel-time matrix. Km per package uses straight-line distance.",
+  xStCols: ["Station", "City", "Routes", "Stops / service h", "Km / package", "Packages / stop", "Median capacity", "% High"],
+});
+Object.assign(I18N.id, {
+  xHlSection: "Kualitas rute: Tinggi vs Rendah",
+  xHlTitle: "Apa yang membedakan rute Tinggi dan Rendah",
+  xHlNote: (h, l, auc) => `Selisih terstandar (Cohen's d) antara ${h} rute Tinggi dan ${l} rute Rendah. Bar ke kanan berarti nilainya lebih tinggi di rute Tinggi. Random forest khusus Tinggi vs Rendah mencapai AUC cross-validation ${String(auc).replace(".", ",")}.`,
+  xHlAxis: "Selisih (Tinggi − Rendah, dalam standar deviasi)",
+  xHourTitle: "Persentase rute Tinggi per jam berangkat",
+  xHourNote: "Jam berangkat dalam UTC (waktu lokal AS 4–7 jam lebih awal). Jam dengan kurang dari 30 rute tidak ditampilkan.",
+  xCapSection: "Kapasitas armada",
+  xCapKpi: ["median kapasitas terpakai", "rute terisi di bawah 50%", "rute terisi di atas 95%"],
+  xCapHistTitle: "Utilisasi kapasitas per rute",
+  xCapHistNote: "Total volume paket ÷ kapasitas kendaraan. Volume paket belum menghitung celah saat penyusunan, jadi muatan sebenarnya sedikit lebih tinggi.",
+  xCapBands: ["Di bawah 50% (armada terlalu besar)", "50–95%", "Di atas 95% (hampir penuh)"],
+  xCapStTitle: "Rute kurang dan kelebihan muatan per stasiun",
+  xCapStNote: "Persentase rute tiap stasiun yang terisi di bawah 50% atau di atas 95% kapasitas, diurutkan dari median utilisasi.",
+  xUnder: "Di bawah 50%", xOver: "Di atas 95%", xMedian: "median",
+  xSvcSection: "Waktu layanan per stop",
+  xSvcTitle: "Waktu layanan terencana menurut jumlah paket per stop",
+  xSvcNote: n => `Median dan 50% tengah dari ${n} stop. Stop dengan 10 paket atau lebih digabung sebagai 10.`,
+  xSvcMedian: "Median", xSvcIqr: "50% tengah", xSvcAxis: "Detik per stop", xSvcPkgs: "Paket di stop",
+  xSvcModelTitle: "Model waktu layanan",
+  xSvcModelNote: "Regresi linear waktu layanan terencana Amazon per stop. Datanya berisi waktu terencana, bukan durasi berhenti yang terukur.",
+  xSvcFit: (rl, rg, mae) => `R² ${String(rl).replace(".", ",")} untuk model linear dan ${String(rg).replace(".", ",")} untuk model gradient boosting yang menambahkan dimensi paket terbesar, time window, dan kota (rata-rata galat ${String(mae).replace(".", ",")} dtk). Jumlah paket menjelaskan sebagian besar yang bisa diprediksi; sisanya bervariasi antar stop.`,
+  xSvcCols: ["Kota", "Median per stop (dtk)", "Detik per paket"],
+  xStSection: "Perbandingan stasiun",
+  xStScatterTitle: "Kepadatan pengiriman vs. kualitas rute",
+  xStScatterNote: r => `Setiap lingkaran adalah satu stasiun, ukurannya sesuai jumlah rute. Korelasi antara paket per stop dan persentase rute Tinggi: r = ${String(r).replace(".", ",")}.`,
+  xStPps: "Paket per stop", xStHigh: "% rute Tinggi",
+  xStTableTitle: "Kartu skor stasiun",
+  xStTableNote: "Klik kolom untuk mengurutkan. Stop per jam layanan hanya memakai waktu layanan terencana, karena waktu tempuh butuh matriks travel time. Km per paket memakai jarak garis lurus.",
+  xStCols: ["Stasiun", "Kota", "Rute", "Stop / jam layanan", "Km / paket", "Paket / stop", "Median kapasitas", "% Tinggi"],
+});
+
+const XLAB = { en: {}, id: {} }; // feature labels reuse T.labels
+const corr = (a, b) => {
+  const ma = a.reduce((s, v) => s + v, 0) / a.length, mb = b.reduce((s, v) => s + v, 0) / b.length;
+  let n = 0, da = 0, db = 0;
+  a.forEach((v, i) => { n += (v - ma) * (b[i] - mb); da += (v - ma) ** 2; db += (b[i] - mb) ** 2; });
+  return n / Math.sqrt(da * db);
+};
+let stSort = { key: "high_pct", dir: -1 };
+
+function renderExtra() {
+  if (!X) return;
+  const sc = s => T.score[s], hi = color("High"), med = color("Medium"), lo = color("Low");
+
+  // High vs Low
+  document.getElementById("xHlNote").textContent = T.xHlNote(fmt(X.hl.n_high), fmt(X.hl.n_low), X.hl.auc);
+  const cmp = X.hl.compare;
+  charts.push(new Chart(xHl, { type: "bar",
+    data: { labels: cmp.map(r => T.labels[r.feature] || r.feature),
+      datasets: [{ data: cmp.map(r => r.effect), backgroundColor: cmp.map(r => r.effect >= 0 ? hi : med), borderRadius: 4, barThickness: 14 }] },
+    options: { indexAxis: "y", scales: { x: { title: { display: true, text: T.xHlAxis } }, y: { grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => {
+        const r = cmp[c.dataIndex], f = r.feature.endsWith("pct") ? v => pct(v) : v => fmt(v, 2);
+        return [`d = ${fmt(r.effect, 2)}`, `${sc("High")}: ${f(r.high)}`, `${sc("Low")}: ${f(r.low)}`];
+      } } } } } }));
+  const hr = X.hl.by_hour;
+  charts.push(new Chart(xHour, { type: "bar",
+    data: { labels: hr.map(r => String(r.departure_hour_utc).padStart(2, "0") + ":00"),
+      datasets: [{ data: hr.map(r => r.high_pct * 100), backgroundColor: hi, borderRadius: 4, maxBarThickness: 32 }] },
+    options: { scales: { y: { beginAtZero: true, ticks: { callback: v => v + "%" } }, x: { grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => [`${fmt(c.raw, 1)}% ${sc("High")}`, `${fmt(hr[c.dataIndex].routes)} ${T.tipRoutes}`] } } } } }));
+
+  // Capacity
+  const cap = X.cap, bandCol = [css("--s-medium"), hi, css("--bad")];
+  document.getElementById("xCapKpis").innerHTML = [pct(cap.median), pct(cap.under_pct), pct(cap.over_pct)]
+    .map((v, i) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.xCapKpi[i]}</div></div>`).join("");
+  document.getElementById("xCapLegend").innerHTML = T.xCapBands.map((b, i) => `<span><i style="background:${bandCol[i]}"></i>${b}</span>`).join("");
+  const e = cap.hist.edges, last = cap.hist.counts.reduce((m, v, i) => v ? i : m, 0);
+  const bins = cap.hist.counts.slice(0, last + 1);
+  charts.push(new Chart(xCapHist, { type: "bar",
+    data: { labels: bins.map((_, i) => pct(e[i], 0)),
+      datasets: [{ data: bins, backgroundColor: bins.map((_, i) => e[i] < cap.low ? bandCol[0] : e[i] >= cap.high ? bandCol[2] : bandCol[1]), borderRadius: 3, categoryPercentage: 0.95, barPercentage: 0.95 }] },
+    options: { scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } },
+      plugins: { tooltip: { callbacks: { title: c => `${pct(e[c[0].dataIndex], 0)}–${pct(e[c[0].dataIndex + 1], 0)}`, label: c => `${fmt(c.raw)} ${T.tipRoutes}` } } } } }));
+  const cs = cap.by_station;
+  charts.push(new Chart(xCapSt, { type: "bar",
+    data: { labels: cs.map(s => `${s.station_code} (${T.xMedian} ${pct(s.median_util, 0)})`),
+      datasets: [{ label: T.xUnder, data: cs.map(s => s.under_pct * 100), backgroundColor: bandCol[0], borderRadius: 3, barThickness: 12 },
+                 { label: T.xOver, data: cs.map(s => s.over_pct * 100), backgroundColor: bandCol[2], borderRadius: 3, barThickness: 12 }] },
+    options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } },
+      plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } } }));
+
+  // Service time
+  const sv = X.svc;
+  document.getElementById("xSvcNote").textContent = T.xSvcNote(fmt(sv.stops));
+  charts.push(new Chart(xSvc, { type: "bar",
+    data: { labels: sv.by_n.map(r => r.n_pkgs === 10 ? "10+" : String(r.n_pkgs)),
+      datasets: [{ type: "line", label: T.xSvcMedian, data: sv.by_n.map(r => r.median_s), borderColor: hi, backgroundColor: hi, borderWidth: 2, pointRadius: 4, tension: 0 },
+                 { label: T.xSvcIqr, data: sv.by_n.map(r => [r.p25_s, r.p75_s]), backgroundColor: hi + "33", borderRadius: 4, barPercentage: 0.6 }] },
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: T.xSvcAxis } }, x: { grid: { display: false }, title: { display: true, text: T.xSvcPkgs } } },
+      plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
+        tooltip: { callbacks: { label: c => Array.isArray(c.raw) ? `${T.xSvcIqr}: ${fmt(c.raw[0])}–${fmt(c.raw[1])} s` : `${T.xSvcMedian}: ${fmt(c.raw)} s` } } } } }));
+  document.getElementById("xSvcFormula").innerHTML =
+    `<span class="lhs">${T.xSvcAxis}</span> ≈ <b>${fmt(sv.intercept_s, 1)}</b> + <b>${fmt(sv.per_pkg_s, 1)}</b> × ${T.xSvcPkgs.toLowerCase()} + <b>${fmt(sv.per_litre_s, 2)}</b> × liter`;
+  xSvcTable.innerHTML = "<tr>" + T.xSvcCols.map(c => `<th>${c}</th>`).join("") + "</tr>" +
+    sv.by_city.map(r => `<tr><td>${r.city}</td><td>${fmt(r.median_s)}</td><td>${fmt(r.per_pkg_s, 1)}</td></tr>`).join("");
+  document.getElementById("xSvcFit").textContent = T.xSvcFit(sv.r2_linear, sv.r2_gbm, sv.mae_gbm_s);
+
+  // Stations
+  const st = X.st, r = corr(st.map(s => s.pkgs_per_stop), st.map(s => s.high_pct));
+  document.getElementById("xStScatterNote").textContent = T.xStScatterNote(fmt(r, 2));
+  const maxR = Math.max(...st.map(s => s.routes));
+  charts.push(new Chart(xStScatter, { type: "bubble",
+    data: { datasets: [{ data: st.map(s => ({ x: s.pkgs_per_stop, y: s.high_pct * 100, r: 5 + 13 * Math.sqrt(s.routes / maxR), s })),
+      backgroundColor: st.map(s => css("--" + status(s.high_pct)) + "cc"), borderColor: css("--surface-1"), borderWidth: 2 }] },
+    options: { plugins: { tooltip: { mode: "nearest", intersect: true, callbacks: {
+        label: c => { const s = c.raw.s; return [`${s.station_code} · ${s.city}`, `${T.xStPps}: ${fmt(s.pkgs_per_stop, 2)}`, `${T.xStHigh}: ${pct(s.high_pct)}`, `${fmt(s.routes)} ${T.tipRoutes}`]; } } } },
+      scales: { x: { title: { display: true, text: T.xStPps } }, y: { title: { display: true, text: T.xStHigh }, ticks: { callback: v => v + "%" } } } },
+    plugins: [{ id: "labels", afterDatasetsDraw(ch) {
+      const g = ch.ctx; g.save(); g.font = "11px " + Chart.defaults.font.family; g.fillStyle = css("--text-secondary"); g.textAlign = "center";
+      ch.getDatasetMeta(0).data.forEach((p, i) => g.fillText(st[i].station_code, p.x, p.y - p.options.radius - 4)); g.restore();
+    } }] }));
+  drawStTable();
+}
+
+function drawStTable() {
+  const keys = ["station_code", "city", "routes", "stops_per_service_h", "km_per_pkg", "pkgs_per_stop", "util", "high_pct"];
+  const f = { routes: v => fmt(v), stops_per_service_h: v => fmt(v, 1), km_per_pkg: v => fmt(v, 2), pkgs_per_stop: v => fmt(v, 2), util: v => pct(v, 0), high_pct: v => pct(v, 0) };
+  const rows = [...X.st].sort((a, b) => (a[stSort.key] > b[stSort.key] ? 1 : a[stSort.key] < b[stSort.key] ? -1 : 0) * stSort.dir);
+  const max = Object.fromEntries(keys.map(k => [k, Math.max(...X.st.map(s => typeof s[k] === "number" ? s[k] : 0))]));
+  xStTable.innerHTML = "<tr>" + keys.map((k, i) =>
+    `<th><button type="button" data-k="${k}" aria-sort="${stSort.key === k ? (stSort.dir > 0 ? "ascending" : "descending") : "none"}">${T.xStCols[i]}${stSort.key === k ? (stSort.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`).join("") + "</tr>" +
+    rows.map(s => "<tr>" + keys.map(k => {
+      if (!f[k]) return `<td>${s[k]}</td>`;
+      const bar = ["stops_per_service_h", "km_per_pkg", "pkgs_per_stop", "high_pct"].includes(k)
+        ? `<i class="cellbar" style="width:${36 * s[k] / max[k]}px"></i>` : "";
+      return `<td>${bar}${f[k](s[k])}</td>`;
+    }).join("") + "</tr>").join("");
+  xStTable.querySelectorAll("th button").forEach(b => b.onclick = () => {
+    stSort = { key: b.dataset.k, dir: stSort.key === b.dataset.k ? -stSort.dir : (["station_code", "city"].includes(b.dataset.k) ? 1 : -1) };
+    drawStTable();
+  });
 }
 
 /* ---------- Routes (3D) ---------- */
