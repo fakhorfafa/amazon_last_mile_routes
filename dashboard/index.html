@@ -9,48 +9,141 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="data.js"></script>
 <style>
+/* Layout: icon rail + full-bleed map stage with floating glass panels (overview); scrolling views for analysis and routes. */
 :root {
   color-scheme: light;
-  --bg: #f4f3f0; --surface-1: #fcfcfb; --border: #e3e2dc;
-  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
-  --grid: #ecebe6;
+  --frame: #e9ebee; --rail: #ffffff; --bg: #f4f5f7; --surface-1: #fcfcfb; --border: #e3e4e8;
+  --text-primary: #101114; --text-secondary: #545861; --text-muted: #8a8e97;
+  --grid: #eceef1;
+  --sea: #7189a3; --land: #e4e9ef; --land-line: #8fa3b8;
+  --wash: rgba(241, 244, 248, .94); --glass: rgba(255, 255, 255, .72); --glass-line: rgba(255, 255, 255, .9); --shadow: 0 10px 30px rgba(30, 45, 70, .18);
   --s-high: #2a78d6; --s-medium: #eb6834; --s-low: #1baf7a;
+  --good: #16c06a; --warn: #f2c200; --bad: #ef3d5a;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #111110; --surface-1: #1a1a19; --border: #2c2c2a;
-    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
-    --grid: #262624;
+    --frame: #0c0d10; --rail: #15171b; --bg: #111214; --surface-1: #1a1b1e; --border: #2b2d33;
+    --text-primary: #f0f1f3; --text-secondary: #b9bcc4; --text-muted: #8a8e97;
+    --grid: #26282d;
+    --sea: #1b2532; --land: #2e3a49; --land-line: #44546a;
+    --wash: rgba(17, 19, 23, .92); --glass: rgba(24, 27, 33, .74); --glass-line: rgba(255, 255, 255, .08); --shadow: 0 10px 30px rgba(0, 0, 0, .45);
     --s-high: #3987e5; --s-medium: #d95926; --s-low: #199e70;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111110; --surface-1: #1a1a19; --border: #2c2c2a;
-  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
-  --grid: #262624;
+  --frame: #0c0d10; --rail: #15171b; --bg: #111214; --surface-1: #1a1b1e; --border: #2b2d33;
+  --text-primary: #f0f1f3; --text-secondary: #b9bcc4; --text-muted: #8a8e97;
+  --grid: #26282d;
+  --sea: #1b2532; --land: #2e3a49; --land-line: #44546a;
+  --wash: rgba(17, 19, 23, .92); --glass: rgba(24, 27, 33, .74); --glass-line: rgba(255, 255, 255, .08); --shadow: 0 10px 30px rgba(0, 0, 0, .45);
   --s-high: #3987e5; --s-medium: #d95926; --s-low: #199e70;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text-primary);
+html, body { height: 100%; }
+body { margin: 0; background: var(--frame); color: var(--text-primary);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
-header.top { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
-header.top > div:not(.lang) { min-width: 0; flex: 1 1 420px; }
-h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; text-wrap: balance; }
+.app { display: flex; height: 100%; padding: 12px; gap: 0; }
+.shell { flex: 1; display: flex; min-width: 0; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); background: var(--bg); }
+
+/* Icon rail */
+.rail { width: 60px; flex: none; background: var(--rail); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; padding: 18px 0; gap: 8px; }
+.logo { width: 30px; height: 30px; margin-bottom: 22px; }
+.rail button { width: 38px; height: 38px; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary);
+  display: grid; place-items: center; cursor: pointer; }
+.rail button:hover { background: var(--grid); }
+.rail button[aria-current="page"] { background: var(--grid); color: var(--text-primary); }
+.rail button:focus-visible, .chip:focus-visible, .city-row:focus-visible { outline: 2px solid var(--s-high); outline-offset: 2px; }
+.rail .spacer { flex: 1; }
+.rail svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.stage { flex: 1; position: relative; min-width: 0; overflow: hidden; }
+.view { position: absolute; inset: 0; }
+.view[hidden] { display: none !important; }
+
+/* Overview: map + glass */
+#ov { background: var(--sea); }
+#usmap { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#ov::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, var(--wash) 0, var(--wash) 18%, transparent 42%); }
+#usmap path.state { fill: var(--land); stroke: var(--land-line); stroke-width: .8; }
+.glow { pointer-events: none; }
+.dot { cursor: pointer; stroke: #fff; stroke-width: 2; }
+.dot.dim, .glow.dim { opacity: .18; }
+.maptip { position: absolute; pointer-events: none; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 10px; font-size: 12px; white-space: nowrap; z-index: 5; }
+.maptip b { display: block; font-size: 13px; }
+.maptip span { color: var(--text-secondary); }
+
+.hello { position: absolute; top: 34px; left: 40px; width: min(330px, calc(100% - 80px)); z-index: 2; }
+.hello h1 { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 4px; }
+.hello .sub { color: var(--text-primary); opacity: .75; font-size: 12.5px; margin: 0 0 18px; }
+.tabs { display: flex; gap: 14px; font-size: 13px; margin-bottom: 12px; }
+.tabs .on { font-weight: 650; }
+.tabs .off { color: var(--text-muted); }
+.city-row { display: grid; grid-template-columns: 82px 1fr 40px; gap: 8px; align-items: center; font-size: 11.5px; padding: 3px 4px; margin: 0 -4px;
+  border: 0; background: transparent; color: inherit; font: inherit; font-size: 11.5px; text-align: left; width: calc(100% + 8px); border-radius: 6px; cursor: pointer; }
+.city-row:hover { background: var(--glass); }
+.city-row[aria-pressed="true"] { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.city-row .bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(0,0,0,.08); gap: 2px; }
+.city-row .bar i { display: block; height: 100%; border-radius: 3px; }
+.city-row .v { text-align: right; font-variant-numeric: tabular-nums; }
+.group-label { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 10px 0 2px; }
+.legend-mini { display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--text-secondary); margin-top: 10px; }
+.legend-mini i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+
+.topbar { position: absolute; top: 18px; right: 18px; display: flex; gap: 8px; z-index: 3; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--glass-line);
+  background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--text-primary);
+  font: inherit; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.chip svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.chip.lang { padding: 0; overflow: hidden; gap: 0; }
+.chip.lang button { height: 100%; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 650; padding: 0 10px; cursor: pointer; }
+.chip.lang button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+
+.cards { position: absolute; left: 34px; right: 34px; bottom: 30px; display: grid; gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 270px)); z-index: 2; }
+.gcard { background: var(--glass); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--glass-line); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 16px 16px; min-width: 0;
+  display: flex; flex-direction: column; gap: 10px; }
+.gcard header { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; }
+.gcard h3, .gcard header a, .gcard header .tag { white-space: nowrap; }
+.gcard h3 { font-size: 13px; font-weight: 650; margin: 0; }
+.gcard header a { font-size: 12px; color: var(--s-high); text-decoration: none; cursor: pointer; }
+.gcard header .tag { margin-left: auto; font-size: 10.5px; color: var(--text-muted); }
+.gcard p { margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.pillars { display: flex; justify-content: space-around; align-items: flex-end; height: 104px; }
+.pillar { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+.pillar .pair { display: flex; gap: 4px; align-items: flex-end; height: 76px; }
+.pillar .pair i { width: 7px; border-radius: 4px; display: block; }
+.pillar .pair i.hatch { opacity: .85; }
+.pillar b { font-size: 11.5px; color: var(--text-primary); font-variant-numeric: tabular-nums; font-weight: 600; }
+.ring { display: grid; place-items: center; height: 104px; }
+.ring svg { width: 104px; height: 104px; }
+.ring text { font-variant-numeric: tabular-nums; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; height: 104px; }
+.tile { border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,.12); padding: 6px; }
+.tile svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tile small { font-size: 11px; line-height: 1.2; }
+.tile b { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile.t1 { background: #4a9bf5; color: #fff; }
+.tile.t2 { background: #34e08a; color: #0d3a22; }
+.tile.t3 { background: var(--surface-1); color: var(--text-primary); }
+
+/* Analysis + routes views */
+.scrollview { overflow-y: auto; padding: 28px 28px 48px; }
+.scrollview h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; text-wrap: balance; }
 h2 { font-size: 16px; margin: 0 0 4px; }
 .sub, .note { color: var(--text-secondary); }
 .note { font-size: 12.5px; margin: 0 0 12px; }
-.lang { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
-.lang button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
-.lang button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
-.lang button:focus-visible { outline: 2px solid var(--s-high); outline-offset: -2px; }
 .grid { display: grid; gap: 16px; margin-top: 16px; }
-.kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
-.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
-.kpi .v { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.kpi .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .kpi .l { color: var(--text-secondary); font-size: 12.5px; }
 .chart { position: relative; height: 260px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 8px; }
@@ -60,130 +153,164 @@ th, td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: r
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--text-secondary); font-weight: 600; }
 .scroll { overflow-x: auto; }
-#map { height: 380px; border-radius: 8px; }
+#map { height: calc(100vh - 230px); min-height: 360px; border-radius: 12px; }
 select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary); max-width: 100%; }
 .insights li { margin-bottom: 6px; }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+
+@media (max-width: 900px) {
+  .app { padding: 0; }
+  .shell { border-radius: 0; }
+  .rail { width: 52px; }
+  .stage { overflow-y: auto; }
+  #ov { position: relative; min-height: 100%; display: flex; flex-direction: column; }
+  #usmap { position: relative; height: 300px; order: 2; }
+  .hello { position: relative; top: auto; left: auto; width: auto; padding: 64px 16px 8px; order: 1; }
+  .cards { position: relative; left: auto; right: auto; bottom: auto; grid-template-columns: 1fr; padding: 16px; order: 3; }
+  .topbar { right: 12px; top: 12px; }
+  .scrollview { padding: 20px 16px 40px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .glow { animation: pulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes pulse { 50% { opacity: .55; transform: scale(1.18); } }
+}
 </style>
 </head>
 <body>
-<main>
-  <header class="top">
-    <div>
+<div class="app">
+<div class="shell">
+  <nav class="rail" aria-label="Views">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 9v14l12 7 12-7V9z" fill="#2a78d6" stroke="none"/><path d="M4 9l12 7 12-7M16 16v14" stroke="#fff" stroke-width="1.6" fill="none"/></svg>
+    <button type="button" data-view="ov" aria-current="page" data-i18n-aria="navOverview"><svg viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4-4"/></svg></button>
+    <button type="button" data-view="an" data-i18n-aria="navAnalysis"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
+    <button type="button" data-view="rt" data-i18n-aria="navRoutes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></button>
+    <div class="spacer"></div>
+    <button type="button" id="themeBtn" data-i18n-aria="toggleTheme"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+  </nav>
+
+  <div class="stage">
+    <div class="topbar">
+      <div class="chip lang" role="group" aria-label="Language / Bahasa">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="id" aria-pressed="false">ID</button>
+      </div>
+      <button type="button" class="chip" id="dlBtn"><span data-i18n="download"></span><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
+    </div>
+
+    <!-- Overview -->
+    <section class="view" id="ov">
+      <svg id="usmap" role="img" data-i18n-aria="mapAria"></svg>
+      <div class="maptip" id="maptip" hidden></div>
+
+      <div class="hello">
+        <h1 data-i18n="hello"></h1>
+        <p class="sub" id="ovSub"></p>
+        <div class="tabs"><span class="on"><span data-i18n="tabCities"></span> <span id="nCities"></span></span><span class="off"><span data-i18n="tabStations"></span> <span id="nStations"></span></span></div>
+        <div id="cityList"></div>
+        <div class="legend-mini" id="dotLegend"></div>
+      </div>
+
+      <div class="cards">
+        <article class="gcard">
+          <header><h3 data-i18n="cScoreTitle"></h3><a data-goto="an" data-i18n="seeAll"></a><span class="tag" id="scopeTag1"></span></header>
+          <div class="pillars" id="pillars"></div>
+          <p data-i18n="cScoreNote"></p>
+        </article>
+        <article class="gcard">
+          <header><h3 data-i18n="cHighTitle"></h3><a data-goto="an" data-i18n="seeAll"></a><span class="tag" id="scopeTag2"></span></header>
+          <div class="ring" id="ring"></div>
+          <p id="ringNote"></p>
+        </article>
+        <article class="gcard">
+          <header><h3 data-i18n="cVolTitle"></h3><a data-goto="rt" data-i18n="seeAll"></a><span class="tag" id="scopeTag3"></span></header>
+          <div class="tiles" id="tiles"></div>
+          <p id="volNote"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Analysis -->
+    <section class="view scrollview" id="an" hidden>
       <h1 data-i18n="title"></h1>
       <p class="sub" id="subtitle"></p>
-    </div>
-    <div class="lang" role="group" aria-label="Language / Bahasa">
-      <button type="button" data-lang="en" aria-pressed="true">EN</button>
-      <button type="button" data-lang="id" aria-pressed="false">ID</button>
-    </div>
-  </header>
+      <div class="grid kpis" id="kpis"></div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="cityMixTitle"></h2><p class="note" data-i18n="cityMixNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="cityScore"></canvas></div></section>
+        <section class="card"><h2 data-i18n="dailyTitle"></h2><p class="note" data-i18n="dailyNote"></p><div class="chart"><canvas id="daily"></canvas></div></section>
+      </div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="zoneTitle"></h2><p class="note" data-i18n="zoneNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histZone"></canvas></div></section>
+        <section class="card"><h2 data-i18n="pathTitle"></h2><p class="note" data-i18n="pathNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histPath"></canvas></div></section>
+      </div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="modelTitle"></h2><p class="note" id="modelNote"></p><div class="chart" style="height:340px"><canvas id="importance"></canvas></div></section>
+        <section class="card insights"><h2 data-i18n="insightsTitle"></h2><ul id="insights"></ul></section>
+      </div>
+      <section class="card" style="margin-top:16px"><h2 data-i18n="cityTableTitle"></h2><div class="scroll"><table id="cityTable"></table></div></section>
+      <section class="card" style="margin-top:16px"><h2 data-i18n="scoreTableTitle"></h2><div class="scroll"><table id="scoreTable"></table></div></section>
+      <footer data-i18n="footer"></footer>
+    </section>
 
-  <div class="grid kpis" id="kpis"></div>
-
-  <div class="grid two">
-    <section class="card">
-      <h2 data-i18n="cityMixTitle"></h2>
-      <p class="note" data-i18n="cityMixNote"></p>
-      <div class="legend" data-legend></div>
-      <div class="chart"><canvas id="cityScore"></canvas></div>
-    </section>
-    <section class="card">
-      <h2 data-i18n="dailyTitle"></h2>
-      <p class="note" data-i18n="dailyNote"></p>
-      <div class="chart"><canvas id="daily"></canvas></div>
-    </section>
-  </div>
-
-  <div class="grid two">
-    <section class="card">
-      <h2 data-i18n="zoneTitle"></h2>
-      <p class="note" data-i18n="zoneNote"></p>
-      <div class="legend" data-legend></div>
-      <div class="chart"><canvas id="histZone"></canvas></div>
-    </section>
-    <section class="card">
-      <h2 data-i18n="pathTitle"></h2>
-      <p class="note" data-i18n="pathNote"></p>
-      <div class="legend" data-legend></div>
-      <div class="chart"><canvas id="histPath"></canvas></div>
-    </section>
-  </div>
-
-  <div class="grid two">
-    <section class="card">
-      <h2 data-i18n="modelTitle"></h2>
-      <p class="note" id="modelNote"></p>
-      <div class="chart" style="height:340px"><canvas id="importance"></canvas></div>
-    </section>
-    <section class="card">
-      <h2 data-i18n="mapTitle"></h2>
+    <!-- Routes -->
+    <section class="view scrollview" id="rt" hidden>
+      <h1 data-i18n="mapTitle"></h1>
       <p class="note" data-i18n="mapNote"></p>
       <select id="routePick" data-i18n-aria="routePickAria"></select>
       <p class="note" id="routeInfo" style="margin-top:8px"></p>
       <div id="map"></div>
     </section>
   </div>
-
-  <section class="card" style="margin-top:16px">
-    <h2 data-i18n="cityTableTitle"></h2>
-    <div class="scroll"><table id="cityTable"></table></div>
-  </section>
-
-  <section class="card" style="margin-top:16px">
-    <h2 data-i18n="scoreTableTitle"></h2>
-    <div class="scroll"><table id="scoreTable"></table></div>
-  </section>
-
-  <section class="card insights" style="margin-top:16px">
-    <h2 data-i18n="insightsTitle"></h2>
-    <ul id="insights"></ul>
-  </section>
-
-  <footer data-i18n="footer"></footer>
-</main>
+</div>
+</div>
 
 <script>
 const D = window.ALMRRC;
 const SCORES = ["High", "Medium", "Low"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const color = s => css("--s-" + s.toLowerCase());
+// Station status thresholds on share of High-scored routes.
+const GOOD = 0.5, WARN = 0.35;
+const status = v => v >= GOOD ? "good" : v >= WARN ? "warn" : "bad";
 
 const I18N = {
   en: {
-    locale: "en-US",
-    pageTitle: "Last Mile Routes",
+    locale: "en-US", pageTitle: "Last Mile Routes",
+    navOverview: "Overview", navAnalysis: "Analysis", navRoutes: "Sample routes", toggleTheme: "Toggle dark mode",
+    download: "Download", mapAria: "Map of delivery stations in the United States",
+    hello: "Hi there 👋",
+    ovSub: (k, f) => `${f(k.routes)} Amazon delivery routes, ${k.date_min} to ${k.date_max}. Pick a city to focus the cards.`,
+    tabCities: "Cities", tabStations: "Stations",
+    region: { "Seattle": "West", "Los Angeles": "West", "Austin": "South", "Chicago": "Midwest", "Boston": "Northeast" },
+    dotLegend: ["≥ 50% High", "35–50% High", "< 35% High"],
+    all: "All cities", seeAll: "See all",
+    cScoreTitle: "Route scores", cScoreNote: "Routes labeled High, Medium or Low by Amazon. Low routes are rare.",
+    cHighTitle: "Route quality", high: "High",
+    ringNote: (n, f) => `${f(n)} routes scored High. Smaller routes with fewer stops score better.`,
+    cVolTitle: "Delivery volume", tStations: "Stations", tStops: "Stops (k)", tPkgs: "Packages (k)",
+    volNote: (s, f) => `${f(s)} stops per route on average, across every station in scope.`,
+    tipRoutes: "routes", tipHigh: "scored High",
     title: "Amazon Last Mile Routes: what makes a high-quality route?",
     subtitle: (k, f) => `${f(k.routes)} real delivery routes from ${k.cities} US metros, ${k.date_min} to ${k.date_max}.`,
     score: { High: "High", Medium: "Medium", Low: "Low" },
     kpi: ["routes", "delivery stops", "packages", "delivery stations", "routes scored High", "packages not delivered"],
-    cityMixTitle: "Route quality mix by city",
-    cityMixNote: "Share of routes labeled High / Medium / Low by Amazon.",
-    dailyTitle: "Routes per day",
-    dailyNote: "Training routes by execution date (2018).",
-    routes: "Routes",
+    cityMixTitle: "Route quality mix by city", cityMixNote: "Share of routes labeled High / Medium / Low by Amazon.",
+    dailyTitle: "Routes per day", dailyNote: "Training routes by execution date (2018).", routes: "Routes",
     zoneTitle: "Zone discipline: % of zones revisited",
     zoneNote: "Share of a route's planning zones the driver left and came back to. The three curves overlap, so revisiting zones does not separate quality levels.",
     pathTitle: "Driven path vs. nearest-neighbour tour",
     pathNote: "Straight-line length of the actual sequence ÷ a greedy nearest-neighbour tour. Below 1 means shorter than the heuristic.",
-    pctRoutes: "% of routes",
-    ofRoutes: "of routes",
+    pctRoutes: "% of routes", ofRoutes: "of routes",
     modelTitle: "What predicts a High score?",
     modelNote: (m, p) => `Random forest, High vs. not-High, 5-fold cross-validated ROC AUC ${m.auc} (base rate ${p(m.base_rate)}). Bars show feature importance.`,
     importance: "Importance",
     mapTitle: "Sample routes in Boston",
     mapNote: "Actual driver sequence (obfuscated coordinates). The station is marked with a ring.",
-    routePickAria: "Choose a route",
-    stops: "stops",
-    station: "Station",
-    stop: "Stop",
-    zone: "zone",
+    routePickAria: "Choose a route", stops: "stops", station: "Station", stop: "Stop", zone: "zone",
     routeInfo: (r, s, p) => `Score ${s} · ${r.n_stops} stops · ~${r.path_km} km straight-line · ${p(r.zones_revisited_pct)} of zones revisited`,
     cityTableTitle: "City summary",
     cityCols: ["City", "Routes", "Stations", "Avg stops", "Avg packages", "Avg path km", "Avg service h", "% High"],
-    scoreTableTitle: "Average route profile by score",
-    metric: "Metric",
+    scoreTableTitle: "Average route profile by score", metric: "Metric",
     labels: {
       n_stops: "Stops", n_packages: "Packages", tw_pct: "% packages with time window", failed_pct: "% failed deliveries",
       service_time_h: "Planned service time (h)", capacity_util: "Capacity utilization", path_km: "Path length (km)",
@@ -192,47 +319,52 @@ const I18N = {
     },
     insightsTitle: "Key takeaways",
     insights: (bs, f, p, best, top, auc) => [
-      `High routes are <b>smaller</b>: ${f(bs.High.n_stops)} stops and ${f(bs.High.path_km)} km on average, vs ${f(bs.Medium.n_stops)} stops and ${f(bs.Medium.path_km)} km for Medium routes. Workload matters as much as how the route is driven.`,
+      `High routes are <b>smaller</b>: ${f(bs.High.n_stops)} stops and ${f(bs.High.path_km)} km on average, vs ${f(bs.Medium.n_stops)} stops and ${f(bs.Medium.path_km)} km for Medium routes.`,
       `High routes are driven slightly closer to a nearest-neighbour tour (path ÷ NN <b>${f(bs.High.path_vs_nn, 3)}</b> vs ${f(bs.Medium.path_vs_nn, 3)} for Medium).`,
-      `Zone discipline is near-universal: every score level revisits only about ${p(bs.High.zones_revisited_pct, 0)} of its zones, so zone order alone does not explain quality.`,
-      `Quality varies by city: ${best.city} has the highest share of High routes (${p(best.high_pct)}), while Boston has the lowest.`,
-      `The model's strongest signals are ${top.join(", ")}. A cross-validated AUC of ${auc} means route quality is only partly predictable from the sequence data.`,
+      `Zone discipline is near-universal: every score level revisits only about ${p(bs.High.zones_revisited_pct, 0)} of its zones.`,
+      `Quality varies by station more than by city: ${best.city} leads at the city level (${p(best.high_pct)} High).`,
+      `The model's strongest signals are ${top.join(", ")} (AUC ${auc}), so quality is only partly predictable from the sequence.`,
     ],
-    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán et al., Transportation Science 2024), Registry of Open Data on AWS. Training set only; Amazon obfuscated the coordinates.",
+    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán et al., Transportation Science 2024), Registry of Open Data on AWS. Training set only; Amazon obfuscated the coordinates. State outlines: US Census via us-atlas.",
+    csvCols: ["station", "city", "routes", "share_high"],
   },
   id: {
-    locale: "id-ID",
-    pageTitle: "Rute Last Mile",
+    locale: "id-ID", pageTitle: "Rute Last Mile",
+    navOverview: "Ringkasan", navAnalysis: "Analisis", navRoutes: "Contoh rute", toggleTheme: "Ganti mode gelap",
+    download: "Unduh", mapAria: "Peta stasiun pengiriman di Amerika Serikat",
+    hello: "Halo 👋",
+    ovSub: (k, f) => `${f(k.routes)} rute pengiriman Amazon, ${k.date_min} sampai ${k.date_max}. Pilih kota untuk memfokuskan kartu.`,
+    tabCities: "Kota", tabStations: "Stasiun",
+    region: { "Seattle": "Barat", "Los Angeles": "Barat", "Austin": "Selatan", "Chicago": "Midwest", "Boston": "Timur Laut" },
+    dotLegend: ["≥ 50% Tinggi", "35–50% Tinggi", "< 35% Tinggi"],
+    all: "Semua kota", seeAll: "Lihat semua",
+    cScoreTitle: "Skor rute", cScoreNote: "Rute yang diberi label Tinggi, Sedang, atau Rendah oleh Amazon. Rute Rendah jarang.",
+    cHighTitle: "Kualitas rute", high: "Tinggi",
+    ringNote: (n, f) => `${f(n)} rute berskor Tinggi. Rute yang lebih kecil dengan stop lebih sedikit cenderung skornya lebih baik.`,
+    cVolTitle: "Volume pengiriman", tStations: "Stasiun", tStops: "Stop (rb)", tPkgs: "Paket (rb)",
+    volNote: (s, f) => `Rata-rata ${f(s)} stop per rute, dari semua stasiun yang dipilih.`,
+    tipRoutes: "rute", tipHigh: "berskor Tinggi",
     title: "Rute Last Mile Amazon: apa yang membuat rute berkualitas tinggi?",
     subtitle: (k, f) => `${f(k.routes)} rute pengiriman nyata dari ${k.cities} kota besar di AS, ${k.date_min} sampai ${k.date_max}.`,
     score: { High: "Tinggi", Medium: "Sedang", Low: "Rendah" },
     kpi: ["rute", "titik pengantaran", "paket", "stasiun pengiriman", "rute berskor Tinggi", "paket gagal terkirim"],
-    cityMixTitle: "Komposisi kualitas rute per kota",
-    cityMixNote: "Persentase rute yang diberi label Tinggi / Sedang / Rendah oleh Amazon.",
-    dailyTitle: "Rute per hari",
-    dailyNote: "Rute data training berdasarkan tanggal pelaksanaan (2018).",
-    routes: "Rute",
+    cityMixTitle: "Komposisi kualitas rute per kota", cityMixNote: "Persentase rute yang diberi label Tinggi / Sedang / Rendah oleh Amazon.",
+    dailyTitle: "Rute per hari", dailyNote: "Rute data training berdasarkan tanggal pelaksanaan (2018).", routes: "Rute",
     zoneTitle: "Disiplin zona: % zona yang dikunjungi ulang",
     zoneNote: "Persentase zona perencanaan yang ditinggalkan driver lalu didatangi lagi. Ketiga kurva saling menumpuk, jadi kunjungan ulang zona tidak membedakan tingkat kualitas.",
     pathTitle: "Jarak tempuh vs. rute nearest-neighbour",
     pathNote: "Panjang garis lurus urutan stop sebenarnya ÷ rute nearest-neighbour (tetangga terdekat). Di bawah 1 berarti lebih pendek dari heuristik.",
-    pctRoutes: "% rute",
-    ofRoutes: "dari rute",
+    pctRoutes: "% rute", ofRoutes: "dari rute",
     modelTitle: "Apa yang memprediksi skor Tinggi?",
-    modelNote: (m, p) => `Random forest, Tinggi vs. bukan Tinggi, ROC AUC ${m.auc.toString().replace(".", ",")} dengan cross-validation 5-fold (base rate ${p(m.base_rate)}). Bar menunjukkan tingkat kepentingan fitur.`,
+    modelNote: (m, p) => `Random forest, Tinggi vs. bukan Tinggi, ROC AUC ${String(m.auc).replace(".", ",")} dengan cross-validation 5-fold (base rate ${p(m.base_rate)}). Bar menunjukkan tingkat kepentingan fitur.`,
     importance: "Kepentingan",
     mapTitle: "Contoh rute di Boston",
     mapNote: "Urutan stop yang benar-benar dilalui driver (koordinat sudah diacak). Stasiun ditandai dengan lingkaran.",
-    routePickAria: "Pilih rute",
-    stops: "stop",
-    station: "Stasiun",
-    stop: "Stop",
-    zone: "zona",
+    routePickAria: "Pilih rute", stops: "stop", station: "Stasiun", stop: "Stop", zone: "zona",
     routeInfo: (r, s, p) => `Skor ${s} · ${r.n_stops} stop · ~${String(r.path_km).replace(".", ",")} km garis lurus · ${p(r.zones_revisited_pct)} zona dikunjungi ulang`,
     cityTableTitle: "Ringkasan per kota",
     cityCols: ["Kota", "Rute", "Stasiun", "Rata-rata stop", "Rata-rata paket", "Rata-rata jarak km", "Rata-rata layanan jam", "% Tinggi"],
-    scoreTableTitle: "Rata-rata profil rute per skor",
-    metric: "Metrik",
+    scoreTableTitle: "Rata-rata profil rute per skor", metric: "Metrik",
     labels: {
       n_stops: "Stop", n_packages: "Paket", tw_pct: "% paket dengan jendela waktu", failed_pct: "% pengiriman gagal",
       service_time_h: "Waktu layanan terencana (jam)", capacity_util: "Utilisasi kapasitas", path_km: "Panjang rute (km)",
@@ -241,146 +373,279 @@ const I18N = {
     },
     insightsTitle: "Temuan utama",
     insights: (bs, f, p, best, top, auc) => [
-      `Rute Tinggi <b>lebih kecil</b>: rata-rata ${f(bs.High.n_stops)} stop dan ${f(bs.High.path_km)} km, dibanding ${f(bs.Medium.n_stops)} stop dan ${f(bs.Medium.path_km)} km pada rute Sedang. Beban kerja sama pentingnya dengan cara rute dijalankan.`,
+      `Rute Tinggi <b>lebih kecil</b>: rata-rata ${f(bs.High.n_stops)} stop dan ${f(bs.High.path_km)} km, dibanding ${f(bs.Medium.n_stops)} stop dan ${f(bs.Medium.path_km)} km pada rute Sedang.`,
       `Rute Tinggi dijalankan sedikit lebih dekat ke rute nearest-neighbour (rute ÷ NN <b>${f(bs.High.path_vs_nn, 3)}</b> vs ${f(bs.Medium.path_vs_nn, 3)} pada rute Sedang).`,
-      `Disiplin zona hampir merata: semua tingkat skor hanya mengunjungi ulang sekitar ${p(bs.High.zones_revisited_pct, 0)} zonanya, jadi urutan zona saja tidak menjelaskan kualitas.`,
-      `Kualitas berbeda antar kota: ${best.city} punya persentase rute Tinggi tertinggi (${p(best.high_pct)}), sedangkan Boston terendah.`,
-      `Sinyal terkuat model adalah ${top.join(", ")}. AUC cross-validation ${String(auc).replace(".", ",")} berarti kualitas rute hanya sebagian yang bisa diprediksi dari data urutan stop.`,
+      `Disiplin zona hampir merata: semua tingkat skor hanya mengunjungi ulang sekitar ${p(bs.High.zones_revisited_pct, 0)} zonanya.`,
+      `Kualitas lebih bervariasi antar stasiun daripada antar kota: di level kota, ${best.city} memimpin (${p(best.high_pct)} Tinggi).`,
+      `Sinyal terkuat model adalah ${top.join(", ")} (AUC ${String(auc).replace(".", ",")}), jadi kualitas rute hanya sebagian yang bisa diprediksi dari urutan stop.`,
     ],
-    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán dkk., Transportation Science 2024), Registry of Open Data on AWS. Hanya data training; koordinat sudah diacak oleh Amazon.",
+    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán dkk., Transportation Science 2024), Registry of Open Data on AWS. Hanya data training; koordinat sudah diacak oleh Amazon. Batas negara bagian: US Census via us-atlas.",
+    csvCols: ["stasiun", "kota", "rute", "persen_tinggi"],
   },
 };
 
-Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-Chart.defaults.color = css("--text-secondary");
-Chart.defaults.borderColor = css("--grid");
-Chart.defaults.plugins.legend.display = false;
-Chart.defaults.maintainAspectRatio = false;
-Chart.defaults.plugins.tooltip.mode = "index";
-Chart.defaults.plugins.tooltip.intersect = false;
+let T, fmt, pct, lang = "en", view = "ov", focusCity = null, charts = [], routeIdx = 0;
+let STATES = null, STATIONS = null;
+const byCity = Object.fromEntries(D.by_city.map(c => [c.city, c]));
 
-// Leaflet map is created once; only its contents change with the language.
-const map = L.map("map", { scrollWheelZoom: false });
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  { attribution: "© OpenStreetMap contributors", maxZoom: 18 }).addTo(map);
-const layer = L.layerGroup().addTo(map);
+/* ---------- Overview ---------- */
+function scopeStats() {
+  const cities = focusCity ? [focusCity] : D.by_city.map(c => c.city);
+  const s = { routes: 0, high: 0, med: 0, low: 0, stops: 0, pkgs: 0, stations: 0 };
+  cities.forEach(c => {
+    const b = byCity[c], m = D.score_by_city[c];
+    s.routes += b.routes; s.high += b.routes * (m.High || 0); s.med += b.routes * (m.Medium || 0); s.low += b.routes * (m.Low || 0);
+    s.stops += b.routes * b.stops; s.pkgs += b.routes * b.packages; s.stations += b.stations;
+  });
+  return s;
+}
 
-let charts = [], T, fmt, pct, routeIdx = 0;
+function drawCityList() {
+  const groups = {};
+  D.by_city.forEach(c => (groups[T.region[c.city]] ||= []).push(c));
+  const el = document.getElementById("cityList");
+  el.innerHTML = Object.entries(groups).map(([g, cs]) => `<div class="group-label">${g}</div>` + cs.map(c => {
+    const m = D.score_by_city[c.city];
+    const bars = SCORES.map(s => `<i style="width:${(m[s] || 0) * 100}%;background:var(--${s === "High" ? "good" : s === "Medium" ? "warn" : "bad"})"></i>`).join("");
+    return `<button type="button" class="city-row" data-city="${c.city}" aria-pressed="${focusCity === c.city}"><span>${c.city}</span><span class="bar">${bars}</span><span class="v">${pct(c.high_pct, 0)}</span></button>`;
+  }).join("")).join("");
+  el.querySelectorAll(".city-row").forEach(b => b.onclick = () => { focusCity = focusCity === b.dataset.city ? null : b.dataset.city; renderOverview(); });
+  document.getElementById("dotLegend").innerHTML = ["good", "warn", "bad"].map((k, i) => `<span><i style="background:var(--${k})"></i>${T.dotLegend[i]}</span>`).join("");
+}
 
-function render(lang) {
-  T = I18N[lang];
-  fmt = (n, d = 0) => Number(n).toLocaleString(T.locale, { maximumFractionDigits: d, minimumFractionDigits: d });
-  pct = (n, d = 1) => fmt(n * 100, d) + "%";
+function project(W, H) {
+  const kx = Math.cos(38 * Math.PI / 180);
+  const pts = STATES.flatMap(s => s.geometry.coordinates.flat(2));
+  const xs = [Math.min(...pts.map(p => p[0])) * kx, Math.max(...pts.map(p => p[0])) * kx];
+  const ys = [Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[1]))];
+  // Leave room for the floating panels: map sits in the right/upper part on wide screens.
+  const wide = W > 900;
+  const box = wide ? { x0: W * 0.30, x1: W - 30, y0: 40, y1: H - 210 } : { x0: 12, x1: W - 12, y0: 12, y1: H - 12 };
+  const k = Math.min((box.x1 - box.x0) / (xs[1] - xs[0]), (box.y1 - box.y0) / (ys[1] - ys[0]));
+  const ox = box.x0 + ((box.x1 - box.x0) - k * (xs[1] - xs[0])) / 2, oy = box.y0 + ((box.y1 - box.y0) - k * (ys[1] - ys[0])) / 2;
+  return ([lng, lat]) => [ox + (lng * kx - xs[0]) * k, oy + (ys[1] - lat) * k];
+}
+
+function drawMap() {
+  if (!STATES || !STATIONS) return;
+  const svg = document.getElementById("usmap");
+  const W = svg.clientWidth, H = svg.clientHeight;
+  if (!W || !H) return;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const P = project(W, H);
+  const path = g => g.coordinates.map(poly => poly.map(r => "M" + r.map(p => P(p).map(v => v.toFixed(1)).join(",")).join("L") + "Z").join("")).join("");
+  let out = `<defs>${["good", "warn", "bad"].map(k => `<radialGradient id="g-${k}"><stop offset="0" stop-color="${css("--" + k)}" stop-opacity=".55"/><stop offset="1" stop-color="${css("--" + k)}" stop-opacity="0"/></radialGradient>`).join("")}</defs>`;
+  out += STATES.map(s => `<path class="state" d="${path(s.geometry)}" fill-rule="evenodd"/>`).join("");
+  const maxR = d3max(STATIONS.map(s => s.routes));
+  // Spread stations of one metro apart a little so overlapping dots stay readable.
+  STATIONS.forEach(s => {
+    const [x, y] = P([s.lng, s.lat]);
+    const r = 5 + 5 * Math.sqrt(s.routes / maxR), k = status(s.high_pct);
+    const dim = focusCity && s.city !== focusCity ? " dim" : "";
+    out += `<circle class="glow${dim}" cx="${x}" cy="${y}" r="${r * 4}" fill="url(#g-${k})"/>`;
+    out += `<circle class="dot${dim}" data-st="${s.station_code}" cx="${x}" cy="${y}" r="${r}" fill="${css("--" + k)}"/>`;
+  });
+  svg.innerHTML = out;
+  const tip = document.getElementById("maptip");
+  svg.querySelectorAll(".dot").forEach(c => {
+    const s = STATIONS.find(q => q.station_code === c.dataset.st);
+    c.onmousemove = e => {
+      const r = svg.getBoundingClientRect();
+      tip.innerHTML = `<b>${s.station_code} · ${s.city}</b><span>${fmt(s.routes)} ${T.tipRoutes} · ${pct(s.high_pct)} ${T.tipHigh}</span>`;
+      tip.hidden = false;
+      tip.style.left = Math.min(r.width - tip.offsetWidth - 8, e.clientX - r.left + 14) + "px";
+      tip.style.top = Math.max(8, e.clientY - r.top - tip.offsetHeight - 10) + "px";
+    };
+    c.onmouseleave = () => { tip.hidden = true; };
+    c.onclick = () => { focusCity = focusCity === s.city ? null : s.city; renderOverview(); };
+  });
+}
+const d3max = a => a.reduce((m, v) => Math.max(m, v), -Infinity);
+
+function drawCards() {
+  const s = scopeStats(), tag = focusCity || T.all;
+  ["scopeTag1", "scopeTag2", "scopeTag3"].forEach(id => document.getElementById(id).textContent = tag);
+
+  const vals = [["High", s.high, "good"], ["Medium", s.med, "warn"], ["Low", s.low, "bad"]];
+  const max = d3max(vals.map(v => v[1]));
+  document.getElementById("pillars").innerHTML = vals.map(([k, v, c]) => {
+    const h = Math.max(4, 76 * v / max);
+    const hatch = `repeating-linear-gradient(135deg, var(--${c}) 0 2px, transparent 2px 4px)`;
+    return `<div class="pillar"><div class="pair"><i style="height:${h}px;background:var(--${c})"></i><i class="hatch" style="height:${h}px;background:${hatch}"></i></div><b>${fmt(Math.round(v))}</b><span>${T.score[k]}</span></div>`;
+  }).join("");
+
+  const share = s.high / s.routes, R = 42, C = 2 * Math.PI * R;
+  document.getElementById("ring").innerHTML = `<svg viewBox="0 0 104 104"><circle cx="52" cy="52" r="${R}" fill="none" stroke="${css("--grid")}" stroke-width="7"/>
+    <circle cx="52" cy="52" r="${R}" fill="none" stroke="${css("--good")}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C * share} ${C}" transform="rotate(-90 52 52)"/>
+    <text x="52" y="50" text-anchor="middle" font-size="16" font-weight="650" fill="currentColor">${pct(share, 0)}</text>
+    <text x="52" y="66" text-anchor="middle" font-size="11" fill="currentColor">${T.high}</text></svg>`;
+  document.getElementById("ringNote").textContent = T.ringNote(Math.round(s.high), fmt);
+
+  const tiles = [["t1", '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>', T.tStations, fmt(s.stations)],
+    ["t2", '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>', T.tStops, fmt(s.stops / 1000, 0)],
+    ["t3", '<path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10"/>', T.tPkgs, fmt(s.pkgs / 1000, 0)]];
+  document.getElementById("tiles").innerHTML = tiles.map(([c, ic, l, v]) => `<div class="tile ${c}"><svg viewBox="0 0 24 24">${ic}</svg><small>${l}</small><b>${v}</b></div>`).join("");
+  document.getElementById("volNote").textContent = T.volNote(Math.round(s.stops / s.routes), fmt);
+}
+
+function renderOverview() {
+  document.getElementById("ovSub").textContent = T.ovSub(D.kpi, fmt);
+  document.getElementById("nCities").textContent = D.by_city.length;
+  document.getElementById("nStations").textContent = STATIONS ? STATIONS.length : D.kpi.stations;
+  drawCityList(); drawMap(); drawCards();
+}
+
+/* ---------- Analysis ---------- */
+function renderAnalysis() {
   const sc = s => T.score[s];
-
-  document.documentElement.lang = lang;
-  document.title = T.pageTitle;
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = T[el.dataset.i18n]; });
-  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", T[el.dataset.i18nAria]));
-  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
   document.getElementById("subtitle").textContent = T.subtitle(D.kpi, fmt);
-
   const kv = [fmt(D.kpi.routes), fmt(D.kpi.stops), fmt(D.kpi.packages), fmt(D.kpi.stations), pct(D.kpi.high_pct), pct(D.kpi.failed_pct, 2)];
-  document.getElementById("kpis").innerHTML = kv.map((v, i) =>
-    `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.kpi[i]}</div></div>`).join("");
+  document.getElementById("kpis").innerHTML = kv.map((v, i) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.kpi[i]}</div></div>`).join("");
+  document.querySelectorAll("[data-legend]").forEach(el => el.innerHTML = SCORES.map(s => `<span><i style="background:${color(s)}"></i>${sc(s)}</span>`).join(""));
 
-  document.querySelectorAll("[data-legend]").forEach(el => el.innerHTML =
-    SCORES.map(s => `<span><i style="background:${color(s)}"></i>${sc(s)}</span>`).join(""));
-
-  charts.forEach(c => c.destroy());
-  charts = [];
-
+  charts.forEach(c => c.destroy()); charts = [];
+  Chart.defaults.color = css("--text-secondary"); Chart.defaults.borderColor = css("--grid");
   const cities = D.by_city.map(c => c.city);
-  charts.push(new Chart(cityScore, {
-    type: "bar",
-    data: { labels: cities, datasets: SCORES.map(s => ({
-      label: sc(s), data: cities.map(c => (D.score_by_city[c][s] || 0) * 100),
-      backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 },
-      borderRadius: 4, borderSkipped: false, barThickness: 22 })) },
-    options: { indexAxis: "y",
-      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + "%" } }, y: { stacked: true, grid: { display: false } } },
-      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } }
-  }));
-
-  charts.push(new Chart(daily, {
-    type: "line",
-    data: { labels: Object.keys(D.routes_by_date), datasets: [{ label: T.routes, data: Object.values(D.routes_by_date),
-      borderColor: color("High"), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 }] },
-    options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } } }
-  }));
-
-  const hist = (canvas, h, digits, asPct) => charts.push(new Chart(canvas, {
-    type: "line",
+  charts.push(new Chart(cityScore, { type: "bar",
+    data: { labels: cities, datasets: SCORES.map(s => ({ label: sc(s), data: cities.map(c => (D.score_by_city[c][s] || 0) * 100),
+      backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 }, borderRadius: 4, borderSkipped: false, barThickness: 22 })) },
+    options: { indexAxis: "y", scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + "%" } }, y: { stacked: true, grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } } }));
+  charts.push(new Chart(daily, { type: "line",
+    data: { labels: Object.keys(D.routes_by_date), datasets: [{ label: T.routes, data: Object.values(D.routes_by_date), borderColor: color("High"), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 }] },
+    options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } } } }));
+  const hist = (canvas, h, digits, asPct) => charts.push(new Chart(canvas, { type: "line",
     data: { labels: h.edges.slice(0, -1).map(e => asPct ? fmt(e * 100, 0) + "%" : fmt(e, digits)),
-      datasets: SCORES.map(s => ({ label: sc(s), data: (h.series[s] || []).map(v => v * 100),
-        borderColor: color(s), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.3 })) },
-    options: { scales: { y: { title: { display: true, text: T.pctRoutes }, beginAtZero: true },
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } },
-      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}% ${T.ofRoutes}` } } } }
-  }));
+      datasets: SCORES.map(s => ({ label: sc(s), data: (h.series[s] || []).map(v => v * 100), borderColor: color(s), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.3 })) },
+    options: { scales: { y: { title: { display: true, text: T.pctRoutes }, beginAtZero: true }, x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } },
+      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}% ${T.ofRoutes}` } } } } }));
   hist(histZone, D.hist.zones_revisited_pct, 2, true);
   hist(histPath, D.hist.path_vs_nn, 2, false);
 
   document.getElementById("modelNote").textContent = T.modelNote(D.model, pct);
   const imp = D.model.importance;
-  charts.push(new Chart(importance, {
-    type: "bar",
-    data: { labels: imp.map(i => T.labels[i.feature] || i.feature),
-      datasets: [{ label: T.importance, data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 4, barThickness: 14 }] },
-    options: { indexAxis: "y", scales: { y: { grid: { display: false } } },
-      plugins: { tooltip: { callbacks: { label: c => `${T.importance}: ${fmt(c.raw, 3)}` } } } }
-  }));
+  charts.push(new Chart(importance, { type: "bar",
+    data: { labels: imp.map(i => T.labels[i.feature] || i.feature), datasets: [{ label: T.importance, data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 4, barThickness: 14 }] },
+    options: { indexAxis: "y", scales: { y: { grid: { display: false } } }, plugins: { tooltip: { callbacks: { label: c => `${T.importance}: ${fmt(c.raw, 3)}` } } } } }));
 
   const cols = [["city"], ["routes", 0], ["stations", 0], ["stops", 0], ["packages", 0], ["path_km", 1], ["service_h", 1], ["high_pct"]];
   cityTable.innerHTML = "<tr>" + T.cityCols.map(c => `<th>${c}</th>`).join("") + "</tr>" +
-    D.by_city.map(r => "<tr>" + cols.map(([k, d]) =>
-      `<td>${k === "city" ? r[k] : k === "high_pct" ? pct(r[k]) : fmt(r[k], d)}</td>`).join("") + "</tr>").join("");
-
+    D.by_city.map(r => "<tr>" + cols.map(([k, d]) => `<td>${k === "city" ? r[k] : k === "high_pct" ? pct(r[k]) : fmt(r[k], d)}</td>`).join("") + "</tr>").join("");
   const feats = ["n_stops", "n_packages", "path_km", "path_vs_nn", "n_zones", "zones_revisited_pct", "zone_switches_per_zone", "tw_pct", "failed_pct"];
   scoreTable.innerHTML = `<tr><th>${T.metric}</th>` + SCORES.map(s => `<th>${sc(s)}</th>`).join("") + "</tr>" +
-    feats.map(f => `<tr><td>${T.labels[f]}</td>` + SCORES.map(s => {
-      const v = D.by_score[s][f];
-      return `<td>${f.endsWith("pct") ? pct(v, 2) : fmt(v, 2)}</td>`;
-    }).join("") + "</tr>").join("");
-
-  routePick.innerHTML = D.sample_routes.map((r, i) =>
-    `<option value="${i}">${sc(r.score)} · ${r.n_stops} ${T.stops} · ${r.route_id.slice(0, 18)}…</option>`).join("");
-  routePick.value = routeIdx;
-  drawRoute(routeIdx, false);
+    feats.map(f => `<tr><td>${T.labels[f]}</td>` + SCORES.map(s => { const v = D.by_score[s][f]; return `<td>${f.endsWith("pct") ? pct(v, 2) : fmt(v, 2)}</td>`; }).join("") + "</tr>").join("");
 
   const bs = D.by_score, top = imp.slice(0, 3).map(i => T.labels[i.feature]);
   const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
   insights.innerHTML = T.insights(bs, fmt, pct, best, top, D.model.auc).map(t => `<li>${t}</li>`).join("");
 }
 
-function drawRoute(i, refit = true) {
+/* ---------- Routes ---------- */
+let map = null, layer = null;
+function ensureMap() {
+  if (map) return;
+  map = L.map("map", { scrollWheelZoom: false });
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors", maxZoom: 18 }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+function renderRoutes() {
+  routePick.innerHTML = D.sample_routes.map((r, i) => `<option value="${i}">${T.score[r.score]} · ${r.n_stops} ${T.stops} · ${r.route_id.slice(0, 18)}…</option>`).join("");
+  routePick.value = routeIdx;
+  if (view === "rt") drawRoute(routeIdx);
+}
+function drawRoute(i) {
+  ensureMap();
   routeIdx = i;
   const r = D.sample_routes[i];
   layer.clearLayers();
   const c = color(r.score);
   L.polyline(r.points, { color: c, weight: 2, opacity: 0.85 }).addTo(layer);
-  r.points.forEach((p, k) => L.circleMarker(p, k === 0
-      ? { radius: 8, color: c, weight: 3, fillOpacity: 0 }
+  r.points.forEach((p, k) => L.circleMarker(p, k === 0 ? { radius: 8, color: c, weight: 3, fillOpacity: 0 }
       : { radius: 4, color: css("--surface-1"), weight: 2, fillColor: c, fillOpacity: 1 })
     .bindTooltip(k === 0 ? T.station : `${T.stop} #${k}${r.zones[k] ? ` · ${T.zone} ${r.zones[k]}` : ""}`).addTo(layer));
-  if (refit || !map._loaded) map.fitBounds(L.latLngBounds(r.points.slice(1)), { padding: [20, 20] });
+  map.invalidateSize();
+  map.fitBounds(L.latLngBounds(r.points.slice(1)), { padding: [20, 20] });
   routeInfo.textContent = T.routeInfo(r, T.score[r.score], pct);
 }
 routePick.onchange = e => drawRoute(+e.target.value);
 
-function setLang(lang) {
-  if (!I18N[lang]) lang = "en";
-  try { localStorage.setItem("lm-lang", lang); } catch (e) {}
-  const u = new URL(location.href);
-  u.searchParams.set("lang", lang);
-  history.replaceState(null, "", u);
-  render(lang);
+/* ---------- Shell ---------- */
+function show(v) {
+  view = v;
+  document.querySelectorAll(".view").forEach(s => s.hidden = s.id !== v);
+  document.querySelectorAll(".rail [data-view]").forEach(b => b.dataset.view === v ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  if (v === "an") renderAnalysis();
+  if (v === "rt") drawRoute(routeIdx);
+  if (v === "ov") drawMap();
+  if (location.hash.slice(1) !== v) history.replaceState(null, "", location.pathname + location.search + "#" + v);
 }
-document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+document.querySelectorAll(".rail [data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
+document.querySelectorAll("[data-goto]").forEach(a => a.onclick = () => show(a.dataset.goto));
 
+function render() {
+  T = I18N[lang];
+  fmt = (n, d = 0) => Number(n).toLocaleString(T.locale, { maximumFractionDigits: d, minimumFractionDigits: d });
+  pct = (n, d = 1) => fmt(n * 100, d) + "%";
+  document.documentElement.lang = lang;
+  document.title = T.pageTitle;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = T[el.dataset.i18n]; });
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", T[el.dataset.i18nAria]));
+  document.querySelectorAll(".chip.lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  renderOverview(); renderRoutes();
+  if (view === "an") renderAnalysis();
+}
+function setLang(l) {
+  lang = I18N[l] ? l : "en";
+  try { localStorage.setItem("lm-lang", lang); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set("lang", lang); history.replaceState(null, "", u);
+  render();
+}
+document.querySelectorAll(".chip.lang button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+
+document.getElementById("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("lm-theme", document.documentElement.dataset.theme); } catch (e) {}
+  render();
+};
+
+document.getElementById("dlBtn").onclick = () => {
+  const rows = (STATIONS || []).filter(s => !focusCity || s.city === focusCity);
+  const csv = [T.csvCols.join(",")].concat(rows.map(s => [s.station_code, s.city, s.routes, s.high_pct].join(","))).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = `stations${focusCity ? "-" + focusCity.toLowerCase().replace(/\s+/g, "-") : ""}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+addEventListener("resize", () => { if (view === "ov") drawMap(); });
+
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.maintainAspectRatio = false;
+Chart.defaults.plugins.tooltip.mode = "index";
+Chart.defaults.plugins.tooltip.intersect = false;
+
+try { const th = localStorage.getItem("lm-theme"); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
 let saved = null;
 try { saved = localStorage.getItem("lm-lang"); } catch (e) {}
-setLang(new URLSearchParams(location.search).get("lang") || saved || "en");
+lang = new URLSearchParams(location.search).get("lang") || saved || "en";
+if (!I18N[lang]) lang = "en";
+render();
+show(["ov", "an", "rt"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "ov");
+
+Promise.all([
+  fetch("us_states.json").then(r => r.json()),
+  fetch("stations.csv").then(r => r.text()),
+]).then(([states, csv]) => {
+  STATES = states;
+  const [head, ...lines] = csv.trim().split(/\r?\n/);
+  const cols = head.split(",");
+  STATIONS = lines.map(l => Object.fromEntries(l.split(",").map((v, i) => [cols[i], isNaN(+v) ? v : +v])));
+  renderOverview();
+}).catch(() => {
+  document.getElementById("ovSub").textContent = "Map data failed to load. Serve this folder over http (python -m http.server).";
+});
 </script>
 </body>
 </html>
