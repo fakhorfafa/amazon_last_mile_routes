@@ -36,13 +36,19 @@
 body { margin: 0; background: var(--bg); color: var(--text-primary);
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
-h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+header.top { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+header.top > div:not(.lang) { min-width: 0; flex: 1 1 420px; }
+h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; text-wrap: balance; }
 h2 { font-size: 16px; margin: 0 0 4px; }
 .sub, .note { color: var(--text-secondary); }
 .note { font-size: 12.5px; margin: 0 0 12px; }
+.lang { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+.lang button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.lang button:focus-visible { outline: 2px solid var(--s-high); outline-offset: -2px; }
 .grid { display: grid; gap: 16px; margin-top: 16px; }
 .kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-.two { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
 .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
 .kpi .v { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .kpi .l { color: var(--text-secondary); font-size: 12.5px; }
@@ -63,35 +69,43 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </head>
 <body>
 <main>
-  <h1>Amazon Last Mile Routes: what makes a high-quality route?</h1>
-  <p class="sub" id="subtitle"></p>
+  <header class="top">
+    <div>
+      <h1 data-i18n="title"></h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language / Bahasa">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="id" aria-pressed="false">ID</button>
+    </div>
+  </header>
 
   <div class="grid kpis" id="kpis"></div>
 
   <div class="grid two">
     <section class="card">
-      <h2>Route quality mix by city</h2>
-      <p class="note">Share of routes labelled High / Medium / Low by Amazon.</p>
+      <h2 data-i18n="cityMixTitle"></h2>
+      <p class="note" data-i18n="cityMixNote"></p>
       <div class="legend" data-legend></div>
       <div class="chart"><canvas id="cityScore"></canvas></div>
     </section>
     <section class="card">
-      <h2>Routes per day</h2>
-      <p class="note">Training routes by execution date (2018).</p>
+      <h2 data-i18n="dailyTitle"></h2>
+      <p class="note" data-i18n="dailyNote"></p>
       <div class="chart"><canvas id="daily"></canvas></div>
     </section>
   </div>
 
   <div class="grid two">
     <section class="card">
-      <h2>Zone discipline: % of zones revisited</h2>
-      <p class="note">Share of a route's planning zones the driver left and came back to. The three curves overlap, so revisiting zones does not separate quality levels.</p>
+      <h2 data-i18n="zoneTitle"></h2>
+      <p class="note" data-i18n="zoneNote"></p>
       <div class="legend" data-legend></div>
       <div class="chart"><canvas id="histZone"></canvas></div>
     </section>
     <section class="card">
-      <h2>Driven path vs. nearest-neighbour tour</h2>
-      <p class="note">Straight-line length of the actual sequence ÷ a greedy nearest-neighbour tour. Below 1 = shorter than the heuristic.</p>
+      <h2 data-i18n="pathTitle"></h2>
+      <p class="note" data-i18n="pathNote"></p>
       <div class="legend" data-legend></div>
       <div class="chart"><canvas id="histPath"></canvas></div>
     </section>
@@ -99,35 +113,35 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 
   <div class="grid two">
     <section class="card">
-      <h2>What predicts a High score?</h2>
+      <h2 data-i18n="modelTitle"></h2>
       <p class="note" id="modelNote"></p>
       <div class="chart" style="height:340px"><canvas id="importance"></canvas></div>
     </section>
     <section class="card">
-      <h2>Sample routes in Boston</h2>
-      <p class="note">Actual driver sequence (obfuscated coordinates). Station marked with a ring.</p>
-      <select id="routePick" aria-label="Choose a route"></select>
+      <h2 data-i18n="mapTitle"></h2>
+      <p class="note" data-i18n="mapNote"></p>
+      <select id="routePick" data-i18n-aria="routePickAria"></select>
       <p class="note" id="routeInfo" style="margin-top:8px"></p>
       <div id="map"></div>
     </section>
   </div>
 
   <section class="card" style="margin-top:16px">
-    <h2>City summary</h2>
+    <h2 data-i18n="cityTableTitle"></h2>
     <div class="scroll"><table id="cityTable"></table></div>
   </section>
 
   <section class="card" style="margin-top:16px">
-    <h2>Average route profile by score</h2>
+    <h2 data-i18n="scoreTableTitle"></h2>
     <div class="scroll"><table id="scoreTable"></table></div>
   </section>
 
   <section class="card insights" style="margin-top:16px">
-    <h2>Key takeaways</h2>
+    <h2 data-i18n="insightsTitle"></h2>
     <ul id="insights"></ul>
   </section>
 
-  <footer>Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán et al., Transportation Science 2024), Registry of Open Data on AWS. Training set only; coordinates are obfuscated by Amazon.</footer>
+  <footer data-i18n="footer"></footer>
 </main>
 
 <script>
@@ -135,22 +149,107 @@ const D = window.ALMRRC;
 const SCORES = ["High", "Medium", "Low"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const color = s => css("--s-" + s.toLowerCase());
-const fmt = (n, d = 0) => Number(n).toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
-const pct = (n, d = 1) => fmt(n * 100, d) + "%";
 
-document.getElementById("subtitle").textContent =
-  `${fmt(D.kpi.routes)} real delivery routes from ${D.kpi.cities} US metros, ${D.kpi.date_min} to ${D.kpi.date_max}.`;
-
-const kpis = [
-  [fmt(D.kpi.routes), "routes"], [fmt(D.kpi.stops), "delivery stops"], [fmt(D.kpi.packages), "packages"],
-  [fmt(D.kpi.stations), "delivery stations"], [pct(D.kpi.high_pct), "routes scored High"],
-  [pct(D.kpi.failed_pct, 2), "packages not delivered"],
-];
-document.getElementById("kpis").innerHTML = kpis.map(([v, l]) =>
-  `<div class="card kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
-
-document.querySelectorAll("[data-legend]").forEach(el => el.innerHTML =
-  SCORES.map(s => `<span><i style="background:${color(s)}"></i>${s}</span>`).join(""));
+const I18N = {
+  en: {
+    locale: "en-US",
+    pageTitle: "Last Mile Routes",
+    title: "Amazon Last Mile Routes: what makes a high-quality route?",
+    subtitle: (k, f) => `${f(k.routes)} real delivery routes from ${k.cities} US metros, ${k.date_min} to ${k.date_max}.`,
+    score: { High: "High", Medium: "Medium", Low: "Low" },
+    kpi: ["routes", "delivery stops", "packages", "delivery stations", "routes scored High", "packages not delivered"],
+    cityMixTitle: "Route quality mix by city",
+    cityMixNote: "Share of routes labeled High / Medium / Low by Amazon.",
+    dailyTitle: "Routes per day",
+    dailyNote: "Training routes by execution date (2018).",
+    routes: "Routes",
+    zoneTitle: "Zone discipline: % of zones revisited",
+    zoneNote: "Share of a route's planning zones the driver left and came back to. The three curves overlap, so revisiting zones does not separate quality levels.",
+    pathTitle: "Driven path vs. nearest-neighbour tour",
+    pathNote: "Straight-line length of the actual sequence ÷ a greedy nearest-neighbour tour. Below 1 means shorter than the heuristic.",
+    pctRoutes: "% of routes",
+    ofRoutes: "of routes",
+    modelTitle: "What predicts a High score?",
+    modelNote: (m, p) => `Random forest, High vs. not-High, 5-fold cross-validated ROC AUC ${m.auc} (base rate ${p(m.base_rate)}). Bars show feature importance.`,
+    importance: "Importance",
+    mapTitle: "Sample routes in Boston",
+    mapNote: "Actual driver sequence (obfuscated coordinates). The station is marked with a ring.",
+    routePickAria: "Choose a route",
+    stops: "stops",
+    station: "Station",
+    stop: "Stop",
+    zone: "zone",
+    routeInfo: (r, s, p) => `Score ${s} · ${r.n_stops} stops · ~${r.path_km} km straight-line · ${p(r.zones_revisited_pct)} of zones revisited`,
+    cityTableTitle: "City summary",
+    cityCols: ["City", "Routes", "Stations", "Avg stops", "Avg packages", "Avg path km", "Avg service h", "% High"],
+    scoreTableTitle: "Average route profile by score",
+    metric: "Metric",
+    labels: {
+      n_stops: "Stops", n_packages: "Packages", tw_pct: "% packages with time window", failed_pct: "% failed deliveries",
+      service_time_h: "Planned service time (h)", capacity_util: "Capacity utilization", path_km: "Path length (km)",
+      path_vs_nn: "Path ÷ NN tour", first_leg_km: "Station → first stop (km)", n_zones: "Zones on route",
+      zone_switches_per_zone: "Zone switches per zone", zones_revisited_pct: "% zones revisited", departure_hour_utc: "Departure hour (UTC)",
+    },
+    insightsTitle: "Key takeaways",
+    insights: (bs, f, p, best, top, auc) => [
+      `High routes are <b>smaller</b>: ${f(bs.High.n_stops)} stops and ${f(bs.High.path_km)} km on average, vs ${f(bs.Medium.n_stops)} stops and ${f(bs.Medium.path_km)} km for Medium routes. Workload matters as much as how the route is driven.`,
+      `High routes are driven slightly closer to a nearest-neighbour tour (path ÷ NN <b>${f(bs.High.path_vs_nn, 3)}</b> vs ${f(bs.Medium.path_vs_nn, 3)} for Medium).`,
+      `Zone discipline is near-universal: every score level revisits only about ${p(bs.High.zones_revisited_pct, 0)} of its zones, so zone order alone does not explain quality.`,
+      `Quality varies by city: ${best.city} has the highest share of High routes (${p(best.high_pct)}), while Boston has the lowest.`,
+      `The model's strongest signals are ${top.join(", ")}. A cross-validated AUC of ${auc} means route quality is only partly predictable from the sequence data.`,
+    ],
+    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán et al., Transportation Science 2024), Registry of Open Data on AWS. Training set only; Amazon obfuscated the coordinates.",
+  },
+  id: {
+    locale: "id-ID",
+    pageTitle: "Rute Last Mile",
+    title: "Rute Last Mile Amazon: apa yang membuat rute berkualitas tinggi?",
+    subtitle: (k, f) => `${f(k.routes)} rute pengiriman nyata dari ${k.cities} kota besar di AS, ${k.date_min} sampai ${k.date_max}.`,
+    score: { High: "Tinggi", Medium: "Sedang", Low: "Rendah" },
+    kpi: ["rute", "titik pengantaran", "paket", "stasiun pengiriman", "rute berskor Tinggi", "paket gagal terkirim"],
+    cityMixTitle: "Komposisi kualitas rute per kota",
+    cityMixNote: "Persentase rute yang diberi label Tinggi / Sedang / Rendah oleh Amazon.",
+    dailyTitle: "Rute per hari",
+    dailyNote: "Rute data training berdasarkan tanggal pelaksanaan (2018).",
+    routes: "Rute",
+    zoneTitle: "Disiplin zona: % zona yang dikunjungi ulang",
+    zoneNote: "Persentase zona perencanaan yang ditinggalkan driver lalu didatangi lagi. Ketiga kurva saling menumpuk, jadi kunjungan ulang zona tidak membedakan tingkat kualitas.",
+    pathTitle: "Jarak tempuh vs. rute nearest-neighbour",
+    pathNote: "Panjang garis lurus urutan stop sebenarnya ÷ rute nearest-neighbour (tetangga terdekat). Di bawah 1 berarti lebih pendek dari heuristik.",
+    pctRoutes: "% rute",
+    ofRoutes: "dari rute",
+    modelTitle: "Apa yang memprediksi skor Tinggi?",
+    modelNote: (m, p) => `Random forest, Tinggi vs. bukan Tinggi, ROC AUC ${m.auc.toString().replace(".", ",")} dengan cross-validation 5-fold (base rate ${p(m.base_rate)}). Bar menunjukkan tingkat kepentingan fitur.`,
+    importance: "Kepentingan",
+    mapTitle: "Contoh rute di Boston",
+    mapNote: "Urutan stop yang benar-benar dilalui driver (koordinat sudah diacak). Stasiun ditandai dengan lingkaran.",
+    routePickAria: "Pilih rute",
+    stops: "stop",
+    station: "Stasiun",
+    stop: "Stop",
+    zone: "zona",
+    routeInfo: (r, s, p) => `Skor ${s} · ${r.n_stops} stop · ~${String(r.path_km).replace(".", ",")} km garis lurus · ${p(r.zones_revisited_pct)} zona dikunjungi ulang`,
+    cityTableTitle: "Ringkasan per kota",
+    cityCols: ["Kota", "Rute", "Stasiun", "Rata-rata stop", "Rata-rata paket", "Rata-rata jarak km", "Rata-rata layanan jam", "% Tinggi"],
+    scoreTableTitle: "Rata-rata profil rute per skor",
+    metric: "Metrik",
+    labels: {
+      n_stops: "Stop", n_packages: "Paket", tw_pct: "% paket dengan jendela waktu", failed_pct: "% pengiriman gagal",
+      service_time_h: "Waktu layanan terencana (jam)", capacity_util: "Utilisasi kapasitas", path_km: "Panjang rute (km)",
+      path_vs_nn: "Rute ÷ NN", first_leg_km: "Stasiun → stop pertama (km)", n_zones: "Jumlah zona",
+      zone_switches_per_zone: "Perpindahan zona per zona", zones_revisited_pct: "% zona dikunjungi ulang", departure_hour_utc: "Jam berangkat (UTC)",
+    },
+    insightsTitle: "Temuan utama",
+    insights: (bs, f, p, best, top, auc) => [
+      `Rute Tinggi <b>lebih kecil</b>: rata-rata ${f(bs.High.n_stops)} stop dan ${f(bs.High.path_km)} km, dibanding ${f(bs.Medium.n_stops)} stop dan ${f(bs.Medium.path_km)} km pada rute Sedang. Beban kerja sama pentingnya dengan cara rute dijalankan.`,
+      `Rute Tinggi dijalankan sedikit lebih dekat ke rute nearest-neighbour (rute ÷ NN <b>${f(bs.High.path_vs_nn, 3)}</b> vs ${f(bs.Medium.path_vs_nn, 3)} pada rute Sedang).`,
+      `Disiplin zona hampir merata: semua tingkat skor hanya mengunjungi ulang sekitar ${p(bs.High.zones_revisited_pct, 0)} zonanya, jadi urutan zona saja tidak menjelaskan kualitas.`,
+      `Kualitas berbeda antar kota: ${best.city} punya persentase rute Tinggi tertinggi (${p(best.high_pct)}), sedangkan Boston terendah.`,
+      `Sinyal terkuat model adalah ${top.join(", ")}. AUC cross-validation ${String(auc).replace(".", ",")} berarti kualitas rute hanya sebagian yang bisa diprediksi dari data urutan stop.`,
+    ],
+    footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán dkk., Transportation Science 2024), Registry of Open Data on AWS. Hanya data training; koordinat sudah diacak oleh Amazon.",
+  },
+};
 
 Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
 Chart.defaults.color = css("--text-secondary");
@@ -160,81 +259,102 @@ Chart.defaults.maintainAspectRatio = false;
 Chart.defaults.plugins.tooltip.mode = "index";
 Chart.defaults.plugins.tooltip.intersect = false;
 
-const cities = D.by_city.map(c => c.city);
-new Chart(cityScore, {
-  type: "bar",
-  data: { labels: cities, datasets: SCORES.map(s => ({
-    label: s, data: cities.map(c => (D.score_by_city[c][s] || 0) * 100),
-    backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 },
-    borderRadius: 4, borderSkipped: false, barThickness: 22 })) },
-  options: { indexAxis: "y",
-    scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + "%" } }, y: { stacked: true, grid: { display: false } } },
-    plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } }
-});
-
-const days = Object.keys(D.routes_by_date);
-new Chart(daily, {
-  type: "line",
-  data: { labels: days, datasets: [{ label: "Routes", data: Object.values(D.routes_by_date),
-    borderColor: color("High"), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 }] },
-  options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } } }
-});
-
-function hist(canvas, h, digits, asPct) {
-  const labels = h.edges.slice(0, -1).map((e, i) => {
-    const a = asPct ? fmt(e * 100, 0) + "%" : fmt(e, digits);
-    return a;
-  });
-  new Chart(canvas, {
-    type: "line",
-    data: { labels, datasets: SCORES.map(s => ({ label: s, data: (h.series[s] || []).map(v => v * 100),
-      borderColor: color(s), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.3 })) },
-    options: { scales: { y: { title: { display: true, text: "% of routes" }, beginAtZero: true },
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } },
-      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}% of routes` } } } }
-  });
-}
-hist(histZone, D.hist.zones_revisited_pct, 2, true);
-hist(histPath, D.hist.path_vs_nn, 2, false);
-
-const LABELS = {
-  n_stops: "Stops", n_packages: "Packages", tw_pct: "% packages with time window", failed_pct: "% failed deliveries",
-  service_time_h: "Planned service time (h)", capacity_util: "Capacity utilisation", path_km: "Path length (km)",
-  path_vs_nn: "Path ÷ NN tour", first_leg_km: "Station → first stop (km)", n_zones: "Zones on route",
-  zone_switches_per_zone: "Zone switches per zone", zones_revisited_pct: "% zones revisited", departure_hour_utc: "Departure hour (UTC)",
-};
-document.getElementById("modelNote").textContent =
-  `Random forest, High vs. not-High, 5-fold cross-validated ROC AUC ${D.model.auc} (base rate ${pct(D.model.base_rate)}). Bars show feature importance.`;
-const imp = D.model.importance;
-new Chart(importance, {
-  type: "bar",
-  data: { labels: imp.map(i => LABELS[i.feature] || i.feature),
-    datasets: [{ label: "Importance", data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 4, barThickness: 14 }] },
-  options: { indexAxis: "y", scales: { y: { grid: { display: false } } },
-    plugins: { tooltip: { callbacks: { label: c => "Importance: " + fmt(c.raw, 3) } } } }
-});
-
-const cols = [["city", "City"], ["routes", "Routes", 0], ["stations", "Stations", 0], ["stops", "Avg stops", 0],
-  ["packages", "Avg packages", 0], ["path_km", "Avg path km", 1], ["service_h", "Avg service h", 1], ["high_pct", "% High"]];
-cityTable.innerHTML = "<tr>" + cols.map(c => `<th>${c[1]}</th>`).join("") + "</tr>" +
-  D.by_city.map(r => "<tr>" + cols.map(([k, , d]) =>
-    `<td>${k === "city" ? r[k] : k === "high_pct" ? pct(r[k]) : fmt(r[k], d)}</td>`).join("") + "</tr>").join("");
-
-const feats = ["n_stops", "n_packages", "path_km", "path_vs_nn", "n_zones", "zones_revisited_pct", "zone_switches_per_zone", "tw_pct", "failed_pct"];
-scoreTable.innerHTML = "<tr><th>Metric</th>" + SCORES.map(s => `<th>${s}</th>`).join("") + "</tr>" +
-  feats.map(f => `<tr><td>${LABELS[f]}</td>` + SCORES.map(s => {
-    const v = D.by_score[s][f];
-    return `<td>${f.endsWith("pct") ? pct(v, 2) : fmt(v, 2)}</td>`;
-  }).join("") + "</tr>").join("");
-
-// Map
+// Leaflet map is created once; only its contents change with the language.
 const map = L.map("map", { scrollWheelZoom: false });
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   { attribution: "© OpenStreetMap contributors", maxZoom: 18 }).addTo(map);
 const layer = L.layerGroup().addTo(map);
-routePick.innerHTML = D.sample_routes.map((r, i) =>
-  `<option value="${i}">${r.score} · ${r.n_stops} stops · ${r.route_id.slice(0, 18)}…</option>`).join("");
-function drawRoute(i) {
+
+let charts = [], T, fmt, pct, routeIdx = 0;
+
+function render(lang) {
+  T = I18N[lang];
+  fmt = (n, d = 0) => Number(n).toLocaleString(T.locale, { maximumFractionDigits: d, minimumFractionDigits: d });
+  pct = (n, d = 1) => fmt(n * 100, d) + "%";
+  const sc = s => T.score[s];
+
+  document.documentElement.lang = lang;
+  document.title = T.pageTitle;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = T[el.dataset.i18n]; });
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", T[el.dataset.i18nAria]));
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  document.getElementById("subtitle").textContent = T.subtitle(D.kpi, fmt);
+
+  const kv = [fmt(D.kpi.routes), fmt(D.kpi.stops), fmt(D.kpi.packages), fmt(D.kpi.stations), pct(D.kpi.high_pct), pct(D.kpi.failed_pct, 2)];
+  document.getElementById("kpis").innerHTML = kv.map((v, i) =>
+    `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.kpi[i]}</div></div>`).join("");
+
+  document.querySelectorAll("[data-legend]").forEach(el => el.innerHTML =
+    SCORES.map(s => `<span><i style="background:${color(s)}"></i>${sc(s)}</span>`).join(""));
+
+  charts.forEach(c => c.destroy());
+  charts = [];
+
+  const cities = D.by_city.map(c => c.city);
+  charts.push(new Chart(cityScore, {
+    type: "bar",
+    data: { labels: cities, datasets: SCORES.map(s => ({
+      label: sc(s), data: cities.map(c => (D.score_by_city[c][s] || 0) * 100),
+      backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 },
+      borderRadius: 4, borderSkipped: false, barThickness: 22 })) },
+    options: { indexAxis: "y",
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + "%" } }, y: { stacked: true, grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } }
+  }));
+
+  charts.push(new Chart(daily, {
+    type: "line",
+    data: { labels: Object.keys(D.routes_by_date), datasets: [{ label: T.routes, data: Object.values(D.routes_by_date),
+      borderColor: color("High"), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 }] },
+    options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } } }
+  }));
+
+  const hist = (canvas, h, digits, asPct) => charts.push(new Chart(canvas, {
+    type: "line",
+    data: { labels: h.edges.slice(0, -1).map(e => asPct ? fmt(e * 100, 0) + "%" : fmt(e, digits)),
+      datasets: SCORES.map(s => ({ label: sc(s), data: (h.series[s] || []).map(v => v * 100),
+        borderColor: color(s), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.3 })) },
+    options: { scales: { y: { title: { display: true, text: T.pctRoutes }, beginAtZero: true },
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } },
+      plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}% ${T.ofRoutes}` } } } }
+  }));
+  hist(histZone, D.hist.zones_revisited_pct, 2, true);
+  hist(histPath, D.hist.path_vs_nn, 2, false);
+
+  document.getElementById("modelNote").textContent = T.modelNote(D.model, pct);
+  const imp = D.model.importance;
+  charts.push(new Chart(importance, {
+    type: "bar",
+    data: { labels: imp.map(i => T.labels[i.feature] || i.feature),
+      datasets: [{ label: T.importance, data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 4, barThickness: 14 }] },
+    options: { indexAxis: "y", scales: { y: { grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => `${T.importance}: ${fmt(c.raw, 3)}` } } } }
+  }));
+
+  const cols = [["city"], ["routes", 0], ["stations", 0], ["stops", 0], ["packages", 0], ["path_km", 1], ["service_h", 1], ["high_pct"]];
+  cityTable.innerHTML = "<tr>" + T.cityCols.map(c => `<th>${c}</th>`).join("") + "</tr>" +
+    D.by_city.map(r => "<tr>" + cols.map(([k, d]) =>
+      `<td>${k === "city" ? r[k] : k === "high_pct" ? pct(r[k]) : fmt(r[k], d)}</td>`).join("") + "</tr>").join("");
+
+  const feats = ["n_stops", "n_packages", "path_km", "path_vs_nn", "n_zones", "zones_revisited_pct", "zone_switches_per_zone", "tw_pct", "failed_pct"];
+  scoreTable.innerHTML = `<tr><th>${T.metric}</th>` + SCORES.map(s => `<th>${sc(s)}</th>`).join("") + "</tr>" +
+    feats.map(f => `<tr><td>${T.labels[f]}</td>` + SCORES.map(s => {
+      const v = D.by_score[s][f];
+      return `<td>${f.endsWith("pct") ? pct(v, 2) : fmt(v, 2)}</td>`;
+    }).join("") + "</tr>").join("");
+
+  routePick.innerHTML = D.sample_routes.map((r, i) =>
+    `<option value="${i}">${sc(r.score)} · ${r.n_stops} ${T.stops} · ${r.route_id.slice(0, 18)}…</option>`).join("");
+  routePick.value = routeIdx;
+  drawRoute(routeIdx, false);
+
+  const bs = D.by_score, top = imp.slice(0, 3).map(i => T.labels[i.feature]);
+  const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
+  insights.innerHTML = T.insights(bs, fmt, pct, best, top, D.model.auc).map(t => `<li>${t}</li>`).join("");
+}
+
+function drawRoute(i, refit = true) {
+  routeIdx = i;
   const r = D.sample_routes[i];
   layer.clearLayers();
   const c = color(r.score);
@@ -242,23 +362,25 @@ function drawRoute(i) {
   r.points.forEach((p, k) => L.circleMarker(p, k === 0
       ? { radius: 8, color: c, weight: 3, fillOpacity: 0 }
       : { radius: 4, color: css("--surface-1"), weight: 2, fillColor: c, fillOpacity: 1 })
-    .bindTooltip(k === 0 ? "Station" : `Stop #${k}${r.zones[k] ? " · zone " + r.zones[k] : ""}`).addTo(layer));
-  map.fitBounds(L.latLngBounds(r.points.slice(1)), { padding: [20, 20] });
-  routeInfo.textContent = `Score ${r.score} · ${r.n_stops} stops · ~${r.path_km} km straight-line · ${pct(r.zones_revisited_pct)} of zones revisited`;
+    .bindTooltip(k === 0 ? T.station : `${T.stop} #${k}${r.zones[k] ? ` · ${T.zone} ${r.zones[k]}` : ""}`).addTo(layer));
+  if (refit || !map._loaded) map.fitBounds(L.latLngBounds(r.points.slice(1)), { padding: [20, 20] });
+  routeInfo.textContent = T.routeInfo(r, T.score[r.score], pct);
 }
 routePick.onchange = e => drawRoute(+e.target.value);
-drawRoute(0);
 
-// Insights generated from the data
-const bs = D.by_score, topFeatures = imp.slice(0, 3).map(i => LABELS[i.feature]);
-const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
-insights.innerHTML = [
-  `High routes are <b>smaller</b>: ${fmt(bs.High.n_stops, 0)} stops and ${fmt(bs.High.path_km, 0)} km on average, vs ${fmt(bs.Medium.n_stops, 0)} stops and ${fmt(bs.Medium.path_km, 0)} km for Medium routes. Workload matters as much as how the route is driven.`,
-  `High routes are driven slightly closer to a nearest-neighbour tour (path ÷ NN <b>${fmt(bs.High.path_vs_nn, 3)}</b> vs ${fmt(bs.Medium.path_vs_nn, 3)} for Medium).`,
-  `Zone discipline is near-universal: every score level revisits only about ${pct(bs.High.zones_revisited_pct, 0)} of its zones, so zone order alone does not explain quality.`,
-  `Quality varies by city: ${best.city} has the highest share of High routes (${pct(best.high_pct)}), while Boston has the lowest.`,
-  `The model's strongest signals are ${topFeatures.join(", ")}. A cross-validated AUC of ${D.model.auc} means route quality is only partly predictable from the sequence data.`,
-].map(t => `<li>${t}</li>`).join("");
+function setLang(lang) {
+  if (!I18N[lang]) lang = "en";
+  try { localStorage.setItem("lm-lang", lang); } catch (e) {}
+  const u = new URL(location.href);
+  u.searchParams.set("lang", lang);
+  history.replaceState(null, "", u);
+  render(lang);
+}
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+
+let saved = null;
+try { saved = localStorage.getItem("lm-lang"); } catch (e) {}
+setLang(new URLSearchParams(location.search).get("lang") || saved || "en");
 </script>
 </body>
 </html>
