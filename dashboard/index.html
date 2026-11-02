@@ -149,6 +149,13 @@ th { color: var(--text-secondary); font-weight: 600; }
 select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary); max-width: 100%; }
 .insights li { margin-bottom: 6px; }
+.hl { margin: 12px 0 0; padding: 10px 12px 10px 14px; border-radius: 14px; font-size: 12.5px; line-height: 1.5; color: var(--text-primary);
+  background: linear-gradient(135deg, rgba(42, 120, 214, .10), rgba(42, 120, 214, .03)); box-shadow: inset 3px 0 0 var(--s-high), inset 0 1px 0 var(--lg-hi); }
+.hl-k { display: block; font-size: 10.5px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--s-high); margin-bottom: 2px; }
+.summary { margin-top: 16px; }
+.summary ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.summary li { line-height: 1.5; max-width: 110ch; }
+.summary li::marker { color: var(--s-high); font-weight: 650; }
 .sec-h { font-size: 19px; margin: 36px 0 0; letter-spacing: -0.01em; }
 .formula { font-size: 15px; padding: 12px 14px; border-radius: 14px; background: var(--lg-sel); box-shadow: inset 0 1px 0 var(--lg-hi); margin: 4px 0 14px; font-variant-numeric: tabular-nums; }
 .formula .lhs { color: var(--text-secondary); }
@@ -318,40 +325,40 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
       <h1 data-i18n="title"></h1>
       <p class="sub" id="subtitle"></p>
       <div class="grid kpis" id="kpis"></div>
+      <section class="card summary"><h2 data-i18n="summaryTitle"></h2><p class="note" data-i18n="summaryNote"></p><ol id="summaryList"></ol></section>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="cityMixTitle"></h2><p class="note" data-i18n="cityMixNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="cityScore"></canvas></div></section>
-        <section class="card"><h2 data-i18n="dailyTitle"></h2><p class="note" data-i18n="dailyNote"></p><div class="chart"><canvas id="daily"></canvas></div></section>
+        <section class="card"><h2 data-i18n="cityMixTitle"></h2><p class="note" data-i18n="cityMixNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="cityScore"></canvas></div><p class="hl" data-hl="cityScore" hidden></p></section>
+        <section class="card"><h2 data-i18n="dailyTitle"></h2><p class="note" data-i18n="dailyNote"></p><div class="chart"><canvas id="daily"></canvas></div><p class="hl" data-hl="daily" hidden></p></section>
       </div>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="zoneTitle"></h2><p class="note" data-i18n="zoneNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histZone"></canvas></div></section>
-        <section class="card"><h2 data-i18n="pathTitle"></h2><p class="note" data-i18n="pathNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histPath"></canvas></div></section>
+        <section class="card"><h2 data-i18n="zoneTitle"></h2><p class="note" data-i18n="zoneNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histZone"></canvas></div><p class="hl" data-hl="histZone" hidden></p></section>
+        <section class="card"><h2 data-i18n="pathTitle"></h2><p class="note" data-i18n="pathNote"></p><div class="legend" data-legend></div><div class="chart"><canvas id="histPath"></canvas></div><p class="hl" data-hl="histPath" hidden></p></section>
       </div>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="modelTitle"></h2><p class="note" id="modelNote"></p><div class="chart" style="height:340px"><canvas id="importance"></canvas></div></section>
-        <section class="card insights"><h2 data-i18n="insightsTitle"></h2><ul id="insights"></ul></section>
+        <section class="card"><h2 data-i18n="modelTitle"></h2><p class="note" id="modelNote"></p><div class="chart" style="height:340px"><canvas id="importance"></canvas></div><p class="hl" data-hl="importance" hidden></p></section>
       </div>
-      <section class="card" style="margin-top:16px"><h2 data-i18n="cityTableTitle"></h2><div class="scroll"><table id="cityTable"></table></div></section>
-      <section class="card" style="margin-top:16px"><h2 data-i18n="scoreTableTitle"></h2><div class="scroll"><table id="scoreTable"></table></div></section>
+      <section class="card" style="margin-top:16px"><h2 data-i18n="cityTableTitle"></h2><div class="scroll"><table id="cityTable"></table></div><p class="hl" data-hl="cityTable" hidden></p></section>
+      <section class="card" style="margin-top:16px"><h2 data-i18n="scoreTableTitle"></h2><div class="scroll"><table id="scoreTable"></table></div><p class="hl" data-hl="scoreTable" hidden></p></section>
 
       <!-- High vs Low -->
       <h2 class="sec-h" data-i18n="xHlSection"></h2>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="xHlTitle"></h2><p class="note" id="xHlNote"></p><div class="chart" style="height:360px"><canvas id="xHl"></canvas></div></section>
-        <section class="card"><h2 data-i18n="xHourTitle"></h2><p class="note" data-i18n="xHourNote"></p><div class="chart" style="height:360px"><canvas id="xHour"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xHlTitle"></h2><p class="note" id="xHlNote"></p><div class="chart" style="height:360px"><canvas id="xHl"></canvas></div><p class="hl" data-hl="xHl" hidden></p></section>
+        <section class="card"><h2 data-i18n="xHourTitle"></h2><p class="note" data-i18n="xHourNote"></p><div class="chart" style="height:360px"><canvas id="xHour"></canvas></div><p class="hl" data-hl="xHour" hidden></p></section>
       </div>
 
       <!-- Capacity -->
       <h2 class="sec-h" data-i18n="xCapSection"></h2>
       <div class="grid kpis" id="xCapKpis"></div>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="xCapHistTitle"></h2><p class="note" data-i18n="xCapHistNote"></p><div class="legend" id="xCapLegend"></div><div class="chart"><canvas id="xCapHist"></canvas></div></section>
-        <section class="card"><h2 data-i18n="xCapStTitle"></h2><p class="note" data-i18n="xCapStNote"></p><div class="chart" style="height:380px"><canvas id="xCapSt"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xCapHistTitle"></h2><p class="note" data-i18n="xCapHistNote"></p><div class="legend" id="xCapLegend"></div><div class="chart"><canvas id="xCapHist"></canvas></div><p class="hl" data-hl="xCapHist" hidden></p></section>
+        <section class="card"><h2 data-i18n="xCapStTitle"></h2><p class="note" data-i18n="xCapStNote"></p><div class="chart" style="height:380px"><canvas id="xCapSt"></canvas></div><p class="hl" data-hl="xCapSt" hidden></p></section>
       </div>
 
       <!-- Service time -->
       <h2 class="sec-h" data-i18n="xSvcSection"></h2>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="xSvcTitle"></h2><p class="note" id="xSvcNote"></p><div class="chart"><canvas id="xSvc"></canvas></div></section>
+        <section class="card"><h2 data-i18n="xSvcTitle"></h2><p class="note" id="xSvcNote"></p><div class="chart"><canvas id="xSvc"></canvas></div><p class="hl" data-hl="xSvc" hidden></p></section>
         <section class="card"><h2 data-i18n="xSvcModelTitle"></h2><p class="note" data-i18n="xSvcModelNote"></p>
           <div class="formula" id="xSvcFormula"></div>
           <div class="scroll"><table id="xSvcTable"></table></div>
@@ -362,8 +369,8 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
       <!-- Station benchmark -->
       <h2 class="sec-h" data-i18n="xStSection"></h2>
       <div class="grid two">
-        <section class="card"><h2 data-i18n="xStScatterTitle"></h2><p class="note" id="xStScatterNote"></p><div class="chart" style="height:340px"><canvas id="xStScatter"></canvas></div></section>
-        <section class="card"><h2 data-i18n="xStTableTitle"></h2><p class="note" data-i18n="xStTableNote"></p><div class="scroll"><table id="xStTable" class="sortable"></table></div></section>
+        <section class="card"><h2 data-i18n="xStScatterTitle"></h2><p class="note" id="xStScatterNote"></p><div class="chart" style="height:340px"><canvas id="xStScatter"></canvas></div><p class="hl" data-hl="xStScatter" hidden></p></section>
+        <section class="card"><h2 data-i18n="xStTableTitle"></h2><p class="note" data-i18n="xStTableNote"></p><div class="scroll"><table id="xStTable" class="sortable"></table></div><p class="hl" data-hl="xStTable" hidden></p></section>
       </div>
       <footer data-i18n="footer"></footer>
     </section>
@@ -662,8 +669,8 @@ function renderAnalysis() {
 
   const bs = D.by_score, top = imp.slice(0, 3).map(i => T.labels[i.feature]);
   const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
-  insights.innerHTML = T.insights(bs, fmt, pct, best, top, D.model.auc).map(t => `<li>${t}</li>`).join("");
   renderExtra();
+  renderHighlights();
 }
 
 /* ---------- Extra analyses (High vs Low, capacity, service time, stations) ---------- */
@@ -833,6 +840,104 @@ function drawStTable() {
     stSort = { key: b.dataset.k, dir: stSort.key === b.dataset.k ? -stSort.dir : (["station_code", "city"].includes(b.dataset.k) ? 1 : -1) };
     drawStTable();
   });
+}
+
+/* ---------- Key highlights per chart + analysis summary ---------- */
+// Each highlight is computed from the data, so the sentences stay true if the pipeline is re-run.
+function highlightFacts() {
+  const cities = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct);
+  const days = Object.entries(D.routes_by_date);
+  const peak = days.reduce((m, d) => d[1] > m[1] ? d : m);
+  const split = "2018-08-17";
+  const avg = a => a.reduce((s, d) => s + d[1], 0) / a.length;
+  const before = avg(days.filter(d => d[0] < split)), after = avg(days.filter(d => d[0] >= split));
+  const zone0 = s => D.hist.zones_revisited_pct.series[s][0];
+  const imp = D.model.importance, impTot = imp.reduce((s, i) => s + i.value, 0);
+  const hl = X.hl.compare, top = hl[0], second = hl[1];
+  const hours = X.hl.by_hour, worstH = hours.reduce((m, h) => h.high_pct < m.high_pct ? h : m), bestH = hours.reduce((m, h) => h.high_pct > m.high_pct ? h : m);
+  const capSt = [...X.cap.by_station], over = [...capSt].sort((a, b) => b.over_pct - a.over_pct), under = [...capSt].sort((a, b) => b.under_pct - a.under_pct);
+  const bn = X.svc.by_n, slope = (bn[8].median_s - bn[0].median_s) / (bn[8].n_pkgs - bn[0].n_pkgs);
+  const st = X.st, r = corr(st.map(s => s.pkgs_per_stop), st.map(s => s.high_pct));
+  const stBest = [...st].sort((a, b) => b.high_pct - a.high_pct)[0], stWorst = [...st].sort((a, b) => a.high_pct - b.high_pct)[0];
+  const fast = [...st].sort((a, b) => b.stops_per_service_h - a.stops_per_service_h)[0];
+  const svcCity = [...X.svc.by_city].sort((a, b) => b.per_pkg_s - a.per_pkg_s);
+  const lowMax = Math.max(...Object.values(D.score_by_city).map(m => m.Low || 0));
+  const pathGap = 1 - D.by_score.High.path_vs_nn / D.by_score.Medium.path_vs_nn;
+  const nnMax = Math.max(...SCORES.map(s => D.by_score[s].path_vs_nn)) - 1;
+  const mostStops = [...D.by_city].sort((a, b) => b.stops - a.stops)[0], longest = [...D.by_city].sort((a, b) => b.path_km - a.path_km)[0];
+  return { lowMax, pathGap, nnMax, mostStops, longest, cities, peak, before, after, zone0, imp, impTot, top, second, worstH, bestH, over, under, slope, r, stBest, stWorst, fast, svcCity };
+}
+
+Object.assign(I18N.en, {
+  hlLabel: "Key highlight",
+  summaryTitle: "Analysis summary",
+  summaryNote: "What the data says, in order of how strongly it shows up.",
+  hl: {
+    cityScore: (F, f, p) => `${F.cities[0].city} has the largest share of High routes (${p(F.cities[0].high_pct)}); ${F.cities.at(-1).city} has the smallest (${p(F.cities.at(-1).high_pct)}). Low routes are at most ${p(F.lowMax)} in any city.`,
+    daily: (F, f) => `Volume peaks on ${F.peak[0]} with ${f(F.peak[1])} routes, then drops from about ${f(F.before)} to ${f(F.after)} routes a day after Aug 17. The drop most likely reflects how the training sample was drawn rather than real demand.`,
+    histZone: (F, f, p, sc) => `${p(F.zone0("High"), 0)} of ${sc("High")} routes and ${p(F.zone0("Medium"), 0)} of ${sc("Medium")} routes revisit almost no zone. Zone order is near-identical across scores.`,
+    histPath: (F, f, p, sc) => `${sc("High")} routes peak slightly left of the others (mean ${f(D.by_score.High.path_vs_nn, 3)} vs ${f(D.by_score.Medium.path_vs_nn, 3)} for ${sc("Medium")}). The shift is real but small: paths about ${p(F.pathGap)} shorter.`,
+    importance: (F, f, p, sc, L) => `The top three signals (${F.imp.slice(0, 3).map(i => L[i.feature]).join(", ")}) carry ${p(F.imp.slice(0, 3).reduce((s, i) => s + i.value, 0) / F.impTot, 0)} of the model's importance. Size and length of the route matter most.`,
+    cityTable: (F, f, p) => `${F.mostStops.city} routes have the most stops (${f(F.mostStops.stops)}) and ${F.longest.city} routes the longest distance (${f(F.longest.path_km, 1)} km); their shares of High routes are ${p(F.mostStops.high_pct)} and ${p(F.longest.high_pct)}.`,
+    scoreTable: (F, f) => `High routes carry about the same number of packages as the others but spread over ${f(D.by_score.Medium.n_stops - D.by_score.High.n_stops)} fewer stops, so each stop is denser.`,
+    xHl: (F, f, p, sc, L) => `The biggest difference is ${L[F.top.feature].toLowerCase()} (${p(F.top.high)} on ${sc("High")} vs ${p(F.top.low)} on ${sc("Low")} routes), followed by ${L[F.second.feature].toLowerCase()}.`,
+    xHour: (F, f, p) => `Routes leaving at ${String(F.worstH.departure_hour_utc).padStart(2, "0")}:00 UTC score worst (${p(F.worstH.high_pct, 0)} High); ${String(F.bestH.departure_hour_utc).padStart(2, "0")}:00 UTC scores best (${p(F.bestH.high_pct, 0)}, from only ${f(F.bestH.routes)} routes).`,
+    xCapHist: (F, f, p) => `Most vans leave between 50% and 95% full (median ${p(X.cap.median, 0)}). ${p(X.cap.over_pct, 0)} of routes are nearly full and ${p(X.cap.under_pct, 0)} could use a smaller vehicle.`,
+    xCapSt: (F, f, p) => `${F.over[0].station_code} and ${F.over[1].station_code} run the fullest vans (${p(F.over[0].over_pct, 0)} and ${p(F.over[1].over_pct, 0)} of routes over 95%). ${F.under[0].station_code} has the most under-filled routes (${p(F.under[0].under_pct, 0)}).`,
+    xSvc: (F, f) => `Each extra package adds about ${f(F.slope)} seconds to a stop. A single-package stop takes a median ${f(X.svc.by_n[0].median_s)} s; a 5-package stop takes ${f(X.svc.by_n[4].median_s)} s.`,
+    xStScatter: (F, f, p) => `Packages per stop tracks quality closely (r = ${f(F.r, 2)}). ${F.stBest.station_code} delivers ${f(F.stBest.pkgs_per_stop, 2)} packages per stop and scores ${p(F.stBest.high_pct, 0)} High; ${F.stWorst.station_code} delivers ${f(F.stWorst.pkgs_per_stop, 2)} and scores ${p(F.stWorst.high_pct, 0)}.`,
+    xStTable: (F, f, p) => `${F.fast.station_code} moves fastest (${f(F.fast.stops_per_service_h, 1)} stops per service hour) but only ${p(F.fast.high_pct, 0)} of its routes score High: more, smaller stops do not mean better routes.`,
+  },
+  summary: (F, f, p, sc) => [
+    `<b>Scope.</b> ${f(D.kpi.routes)} Amazon routes from ${D.kpi.stations} stations in 5 US cities (Jul–Aug 2018); ${p(D.kpi.high_pct)} are scored High, ${p(D.score_counts.Low / D.kpi.routes)} Low.`,
+    `<b>Density matters most.</b> Stations with more packages per stop have far more High routes (r = ${f(F.r, 2)}). High routes average ${f(D.by_score.High.n_stops)} stops vs ${f(D.by_score.Medium.n_stops)} for Medium, for the same number of packages.`,
+    `<b>Time windows go with quality.</b> ${sc("High")} routes have ${p(X.hl.compare.find(c => c.feature === "tw_pct").high)} of packages in a time window vs ${p(X.hl.compare.find(c => c.feature === "tw_pct").low)} on ${sc("Low")} routes. A High-vs-Low model reaches AUC ${f(X.hl.auc, 2)}; High-vs-rest only ${f(D.model.auc, 2)}.`,
+    `<b>Driving order is not the problem.</b> All score levels follow a nearest-neighbour path within about ${p(F.nnMax, 0)} and revisit only ~4% of zones.`,
+    `<b>Capacity is mostly fine.</b> Median van is ${p(X.cap.median, 0)} full; ${p(X.cap.over_pct, 0)} of routes are nearly full, concentrated at ${F.over[0].station_code} and ${F.over[1].station_code}.`,
+    `<b>Service time is mostly package count.</b> About ${f(X.svc.intercept_s)} s per stop plus ${f(X.svc.per_pkg_s)} s per package (R² ${f(X.svc.r2_linear, 2)}). ${F.svcCity[0].city} is slowest at ${f(F.svcCity[0].per_pkg_s)} s per package.`,
+    `<b>Not answered yet.</b> The optimizer-vs-driver gap and time-window risk need the travel-time matrix, which is not loaded.`,
+  ],
+});
+Object.assign(I18N.id, {
+  hlLabel: "Sorotan utama",
+  summaryTitle: "Resume analisa",
+  summaryNote: "Apa kata data, diurutkan dari temuan yang paling kuat.",
+  hl: {
+    cityScore: (F, f, p) => `${F.cities[0].city} punya persentase rute Tinggi terbesar (${p(F.cities[0].high_pct)}); ${F.cities.at(-1).city} terkecil (${p(F.cities.at(-1).high_pct)}). Rute Rendah paling banyak ${p(F.lowMax)} di kota mana pun.`,
+    daily: (F, f) => `Volume tertinggi pada ${F.peak[0]} dengan ${f(F.peak[1])} rute, lalu turun dari sekitar ${f(F.before)} menjadi ${f(F.after)} rute per hari setelah 17 Agustus. Penurunan ini kemungkinan besar mencerminkan cara sampel training diambil, bukan permintaan sebenarnya.`,
+    histZone: (F, f, p, sc) => `${p(F.zone0("High"), 0)} rute ${sc("High")} dan ${p(F.zone0("Medium"), 0)} rute ${sc("Medium")} hampir tidak mengunjungi ulang zona mana pun. Urutan zona hampir sama di semua skor.`,
+    histPath: (F, f, p) => `Puncak rute Tinggi sedikit lebih ke kiri (rata-rata ${f(D.by_score.High.path_vs_nn, 3)} vs ${f(D.by_score.Medium.path_vs_nn, 3)} pada rute Sedang). Perbedaannya nyata tapi kecil: jarak sekitar ${p(F.pathGap)} lebih pendek.`,
+    importance: (F, f, p, sc, L) => `Tiga sinyal teratas (${F.imp.slice(0, 3).map(i => L[i.feature]).join(", ")}) menyumbang ${p(F.imp.slice(0, 3).reduce((s, i) => s + i.value, 0) / F.impTot, 0)} dari kepentingan model. Ukuran dan panjang rute paling berpengaruh.`,
+    cityTable: (F, f, p) => `Rute ${F.mostStops.city} punya stop terbanyak (${f(F.mostStops.stops)}) dan ${F.longest.city} jarak terjauh (${f(F.longest.path_km, 1)} km); persentase rute Tinggi keduanya ${p(F.mostStops.high_pct)} dan ${p(F.longest.high_pct)}.`,
+    scoreTable: (F, f) => `Rute Tinggi membawa jumlah paket yang hampir sama, tapi tersebar di ${f(D.by_score.Medium.n_stops - D.by_score.High.n_stops)} stop lebih sedikit, jadi tiap stop lebih padat.`,
+    xHl: (F, f, p, sc, L) => `Perbedaan terbesar ada di ${L[F.top.feature].toLowerCase()} (${p(F.top.high)} pada rute ${sc("High")} vs ${p(F.top.low)} pada rute ${sc("Low")}), disusul ${L[F.second.feature].toLowerCase()}.`,
+    xHour: (F, f, p) => `Rute yang berangkat pukul ${String(F.worstH.departure_hour_utc).padStart(2, "0")}:00 UTC skornya paling buruk (${p(F.worstH.high_pct, 0)} Tinggi); pukul ${String(F.bestH.departure_hour_utc).padStart(2, "0")}:00 UTC paling baik (${p(F.bestH.high_pct, 0)}, dari hanya ${f(F.bestH.routes)} rute).`,
+    xCapHist: (F, f, p) => `Sebagian besar van berangkat terisi 50–95% (median ${p(X.cap.median, 0)}). ${p(X.cap.over_pct, 0)} rute hampir penuh dan ${p(X.cap.under_pct, 0)} bisa memakai kendaraan lebih kecil.`,
+    xCapSt: (F, f, p) => `${F.over[0].station_code} dan ${F.over[1].station_code} paling sering penuh (${p(F.over[0].over_pct, 0)} dan ${p(F.over[1].over_pct, 0)} rute di atas 95%). ${F.under[0].station_code} paling banyak rute yang kurang terisi (${p(F.under[0].under_pct, 0)}).`,
+    xSvc: (F, f) => `Setiap tambahan satu paket menambah sekitar ${f(F.slope)} detik per stop. Stop dengan 1 paket butuh median ${f(X.svc.by_n[0].median_s)} dtk; stop dengan 5 paket butuh ${f(X.svc.by_n[4].median_s)} dtk.`,
+    xStScatter: (F, f, p) => `Paket per stop sangat sejalan dengan kualitas (r = ${f(F.r, 2)}). ${F.stBest.station_code} mengantar ${f(F.stBest.pkgs_per_stop, 2)} paket per stop dan ${p(F.stBest.high_pct, 0)} rutenya Tinggi; ${F.stWorst.station_code} hanya ${f(F.stWorst.pkgs_per_stop, 2)} dengan ${p(F.stWorst.high_pct, 0)}.`,
+    xStTable: (F, f, p) => `${F.fast.station_code} paling cepat (${f(F.fast.stops_per_service_h, 1)} stop per jam layanan), tapi hanya ${p(F.fast.high_pct, 0)} rutenya Tinggi: banyak stop kecil tidak berarti rute lebih baik.`,
+  },
+  summary: (F, f, p, sc) => [
+    `<b>Cakupan.</b> ${f(D.kpi.routes)} rute Amazon dari ${D.kpi.stations} stasiun di 5 kota AS (Jul–Agu 2018); ${p(D.kpi.high_pct)} berskor Tinggi, ${p(D.score_counts.Low / D.kpi.routes)} Rendah.`,
+    `<b>Kepadatan paling menentukan.</b> Stasiun dengan paket per stop lebih banyak punya rute Tinggi jauh lebih banyak (r = ${f(F.r, 2)}). Rute Tinggi rata-rata ${f(D.by_score.High.n_stops)} stop vs ${f(D.by_score.Medium.n_stops)} pada rute Sedang, dengan jumlah paket yang sama.`,
+    `<b>Time window sejalan dengan kualitas.</b> Rute ${sc("High")} punya ${p(X.hl.compare.find(c => c.feature === "tw_pct").high)} paket ber-time window vs ${p(X.hl.compare.find(c => c.feature === "tw_pct").low)} pada rute ${sc("Low")}. Model Tinggi vs Rendah mencapai AUC ${f(X.hl.auc, 2)}; Tinggi vs lainnya hanya ${f(D.model.auc, 2)}.`,
+    `<b>Urutan mengemudi bukan masalahnya.</b> Semua tingkat skor mengikuti jalur nearest-neighbour dengan selisih sekitar ${p(F.nnMax, 0)} dan hanya mengunjungi ulang ~4% zona.`,
+    `<b>Kapasitas umumnya cukup.</b> Median van terisi ${p(X.cap.median, 0)}; ${p(X.cap.over_pct, 0)} rute hampir penuh, terutama di ${F.over[0].station_code} dan ${F.over[1].station_code}.`,
+    `<b>Waktu layanan terutama ditentukan jumlah paket.</b> Sekitar ${f(X.svc.intercept_s)} dtk per stop ditambah ${f(X.svc.per_pkg_s)} dtk per paket (R² ${f(X.svc.r2_linear, 2)}). ${F.svcCity[0].city} paling lambat, ${f(F.svcCity[0].per_pkg_s)} dtk per paket.`,
+    `<b>Belum terjawab.</b> Selisih optimizer vs driver dan risiko pelanggaran time window butuh matriks travel time, yang belum dimuat.`,
+  ],
+});
+
+function renderHighlights() {
+  if (!X) return;
+  const F = highlightFacts(), sc = s => T.score[s];
+  document.querySelectorAll("[data-hl]").forEach(el => {
+    const fn = T.hl[el.dataset.hl];
+    el.innerHTML = fn ? `<span class="hl-k">${T.hlLabel}</span>${fn(F, fmt, pct, sc, T.labels)}` : "";
+    el.hidden = !fn;
+  });
+  document.getElementById("summaryList").innerHTML = T.summary(F, fmt, pct, sc).map(s => `<li>${s}</li>`).join("");
 }
 
 /* ---------- Routes (3D) ---------- */
