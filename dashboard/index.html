@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Last Mile Routes</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="data.js"></script>
 <style>
 /* Layout: icon rail + full-bleed map stage with floating glass panels (overview); scrolling views for analysis and routes. */
@@ -144,7 +144,18 @@ th, td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: r
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--text-secondary); font-weight: 600; }
 .scroll { overflow-x: auto; }
-#map { height: calc(100vh - 230px); min-height: 360px; border-radius: 12px; }
+#rt { background: var(--sea); }
+#map3d { position: absolute; inset: 0; }
+.rt-panel { position: absolute; top: 30px; left: 104px; width: min(340px, calc(100% - 130px)); z-index: 3; }
+.rt-panel select { border-radius: 14px; background: var(--lg-sel); border: 0; box-shadow: inset 0 1px 0 var(--lg-hi); padding: 7px 10px; }
+.rt-legend { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-secondary); }
+.rt-legend i { width: 64px; height: 8px; border-radius: 4px; display: block; }
+.rt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rt-progress { font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.maplibregl-ctrl-group { border-radius: 18px !important; overflow: hidden; background: var(--glass) !important; backdrop-filter: var(--lg-blur); box-shadow: var(--lg-drop) !important; }
+.maplibregl-popup-content { border-radius: 14px; background: var(--glass); backdrop-filter: var(--lg-blur); -webkit-backdrop-filter: var(--lg-blur); color: var(--text-primary); box-shadow: var(--lg-drop); padding: 8px 12px; font-size: 12px; }
+.maplibregl-popup-tip { display: none; }
+.maplibregl-ctrl-attrib { border-radius: 10px 0 0 0; font-size: 10px; }
 select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary); max-width: 100%; }
 .insights li { margin-bottom: 6px; }
@@ -240,7 +251,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 .tile.t2 { background: linear-gradient(160deg, #6ff0b0, #22cf78); }
 .tile.t3 { background: linear-gradient(160deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .55)); color: #101114; }
 .card { border-radius: 22px; }
-#map { border-radius: 22px; }
+
 
 @media (max-width: 900px) {
   .app { padding: 0; }
@@ -251,6 +262,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   .hello { left: auto; padding-top: 64px; }
   .cards { left: auto; right: auto; padding-bottom: 96px; }
   .scrollview { padding: 20px 16px 110px; }
+  .rt-panel { left: 12px; right: 12px; top: 58px; width: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .rail button, .chip.lang button { transition: none; } }
 </style>
@@ -341,12 +353,23 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     </section>
 
     <!-- Routes -->
-    <section class="view scrollview" id="rt" hidden>
-      <h1 data-i18n="mapTitle"></h1>
-      <p class="note" data-i18n="mapNote"></p>
-      <select id="routePick" data-i18n-aria="routePickAria"></select>
-      <p class="note" id="routeInfo" style="margin-top:8px"></p>
-      <div id="map"></div>
+    <section class="view" id="rt" hidden>
+      <div id="map3d"></div>
+      <article class="gcard rt-panel">
+        <header><h3 data-i18n="mapTitle"></h3></header>
+        <p data-i18n="mapNote"></p>
+        <select id="routePick" data-i18n-aria="routePickAria"></select>
+        <p id="routeInfo"></p>
+        <div class="rt-legend"><i id="rampSwatch"></i><span data-i18n="legendSeq"></span></div>
+        <div class="rt-actions">
+          <button type="button" class="chip" id="playBtn"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg><span id="playLabel"></span></button>
+          <div class="chip lang" role="group" data-i18n-aria="viewMode">
+            <button type="button" data-pitch="0" aria-pressed="false">2D</button>
+            <button type="button" data-pitch="60" aria-pressed="true">3D</button>
+          </div>
+        </div>
+        <p class="rt-progress" id="playProgress"></p>
+      </article>
     </section>
   </div>
 </div>
@@ -393,8 +416,8 @@ const I18N = {
     modelNote: (m, p) => `Random forest, High vs. not-High, 5-fold cross-validated ROC AUC ${m.auc} (base rate ${p(m.base_rate)}). Bars show feature importance.`,
     importance: "Importance",
     mapTitle: "Sample routes in Boston",
-    mapNote: "Actual driver sequence (obfuscated coordinates). The station is marked with a ring.",
-    routePickAria: "Choose a route", stops: "stops", station: "Station", stop: "Stop", zone: "zone",
+    mapNote: "3D view of the stop sequence the driver actually drove. Each pillar is a stop; Amazon obfuscated the coordinates. Right-drag or Ctrl-drag to rotate and tilt.",
+    routePickAria: "Choose a route", legendSeq: "First stop → last stop", play: "Play route", pause: "Pause", viewMode: "View", playing: (k, n) => `Stop ${k} of ${n}`, stops: "stops", station: "Station", stop: "Stop", zone: "zone",
     routeInfo: (r, s, p) => `Score ${s} · ${r.n_stops} stops · ~${r.path_km} km straight-line · ${p(r.zones_revisited_pct)} of zones revisited`,
     cityTableTitle: "City summary",
     cityCols: ["City", "Routes", "Stations", "Avg stops", "Avg packages", "Avg path km", "Avg service h", "% High"],
@@ -447,8 +470,8 @@ const I18N = {
     modelNote: (m, p) => `Random forest, Tinggi vs. bukan Tinggi, ROC AUC ${String(m.auc).replace(".", ",")} dengan cross-validation 5-fold (base rate ${p(m.base_rate)}). Bar menunjukkan tingkat kepentingan fitur.`,
     importance: "Kepentingan",
     mapTitle: "Contoh rute di Boston",
-    mapNote: "Urutan stop yang benar-benar dilalui driver (koordinat sudah diacak). Stasiun ditandai dengan lingkaran.",
-    routePickAria: "Pilih rute", stops: "stop", station: "Stasiun", stop: "Stop", zone: "zona",
+    mapNote: "Tampilan 3D urutan stop yang benar-benar dilalui driver. Setiap tiang adalah satu stop; koordinat sudah diacak oleh Amazon. Klik kanan + geser atau Ctrl + geser untuk memutar dan memiringkan.",
+    routePickAria: "Pilih rute", legendSeq: "Stop pertama → stop terakhir", play: "Putar rute", pause: "Jeda", viewMode: "Tampilan", playing: (k, n) => `Stop ${k} dari ${n}`, stops: "stop", station: "Stasiun", stop: "Stop", zone: "zona",
     routeInfo: (r, s, p) => `Skor ${s} · ${r.n_stops} stop · ~${String(r.path_km).replace(".", ",")} km garis lurus · ${p(r.zones_revisited_pct)} zona dikunjungi ulang`,
     cityTableTitle: "Ringkasan per kota",
     cityCols: ["Kota", "Rute", "Stasiun", "Rata-rata stop", "Rata-rata paket", "Rata-rata jarak km", "Rata-rata layanan jam", "% Tinggi"],
@@ -628,34 +651,137 @@ function renderAnalysis() {
   insights.innerHTML = T.insights(bs, fmt, pct, best, top, D.model.auc).map(t => `<li>${t}</li>`).join("");
 }
 
-/* ---------- Routes ---------- */
-let map = null, layer = null;
+/* ---------- Routes (3D) ---------- */
+const STYLE = { light: "https://tiles.openfreemap.org/styles/positron", dark: "https://tiles.openfreemap.org/styles/dark" };
+let map = null, styleKey = null, pitch = 60, play = null;
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, k) => "#" + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k).toString(16).padStart(2, "0")).join("");
+const rampFor = sc => { const c = color(sc), lo = mix(c, "#ffffff", 0.75), hi = mix(c, "#000000", 0.45); return k => k < .5 ? mix(lo, c, k * 2) : mix(c, hi, (k - .5) * 2); };
+const isDark = () => document.documentElement.dataset.theme === "dark";
+// A small square footprint (in metres) around a point, extruded into a pillar.
+function square([lat, lng], m) {
+  const dLat = m / 111320, dLng = m / (111320 * Math.cos(lat * Math.PI / 180));
+  return [[[lng - dLng, lat - dLat], [lng + dLng, lat - dLat], [lng + dLng, lat + dLat], [lng - dLng, lat + dLat], [lng - dLng, lat - dLat]]];
+}
+function routeGeo(r) {
+  const ramp = rampFor(r.score), n = r.points.length - 1;
+  const stops = r.points.map((p, k) => ({ type: "Feature",
+    properties: { seq: k, label: k === 0 ? T.station : `${T.stop} #${k}`, zone: r.zones[k] || "",
+      color: k === 0 ? (isDark() ? "#f0f1f3" : "#101114") : ramp((k - 1) / Math.max(1, n - 1)), h: k === 0 ? 220 : 60 + 60 * (k / n) },
+    geometry: { type: "Polygon", coordinates: square(p, k === 0 ? 45 : 14) } }));
+  const line = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: r.points.slice(1).map(p => [p[1], p[0]]) } };
+  return { stops: { type: "FeatureCollection", features: stops }, line: { type: "FeatureCollection", features: [line] } };
+}
+function addLayers() {
+  const r = D.sample_routes[routeIdx], g = routeGeo(r);
+  if (map.getSource("openmaptiles") && !map.getLayer("bld3d")) {
+    map.addLayer({ id: "bld3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 12,
+      paint: { "fill-extrusion-color": isDark() ? "#3a4757" : "#dfe6ee",
+        "fill-extrusion-height": ["coalesce", ["get", "render_height"], 8], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.55 } });
+  }
+  map.addSource("route", { type: "geojson", data: g.line });
+  map.addSource("stops", { type: "geojson", data: g.stops });
+  map.addSource("driver", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({ id: "route-glow", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
+    paint: { "line-color": color(r.score), "line-width": 10, "line-opacity": 0.18, "line-blur": 4 } });
+  map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
+    paint: { "line-color": color(r.score), "line-width": 2.5, "line-opacity": 0.9 } });
+  map.addLayer({ id: "pillars", type: "fill-extrusion", source: "stops",
+    paint: { "fill-extrusion-color": ["get", "color"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.92 } });
+  map.addLayer({ id: "driver", type: "circle", source: "driver",
+    paint: { "circle-radius": 9, "circle-color": color(r.score), "circle-stroke-color": "#ffffff", "circle-stroke-width": 3, "circle-pitch-alignment": "map" } });
+}
+function fit(animate) {
+  const pts = D.sample_routes[routeIdx].points.slice(1);
+  const lats = pts.map(p => p[0]), lngs = pts.map(p => p[1]);
+  const pad = innerWidth > 900 ? { top: 60, bottom: 60, left: 480, right: 60 } : { top: 40, bottom: 120, left: 20, right: 20 };
+  map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+    { padding: pad, pitch, bearing: pitch ? -24 : 0, duration: animate ? 1600 : 0 });
+}
 function ensureMap() {
-  if (map) return;
-  map = L.map("map", { scrollWheelZoom: false });
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors", maxZoom: 18 }).addTo(map);
-  layer = L.layerGroup().addTo(map);
+  const key = isDark() ? "dark" : "light";
+  if (!map) {
+    map = new maplibregl.Map({ container: "map3d", style: STYLE[key], pitch, bearing: -24, center: [-71.1, 42.33], zoom: 12, maxPitch: 75, attributionControl: { compact: true } });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+    styleKey = key;
+    map.on("style.load", () => { addLayers(); fit(false); });
+    const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+    map.on("mousemove", "pillars", e => {
+      map.getCanvas().style.cursor = "pointer";
+      const f = e.features[0].properties;
+      pop.setLngLat(e.lngLat).setHTML(`<b>${f.label}</b>${f.zone ? `<br>${T.zone} ${f.zone}` : ""}`).addTo(map);
+    });
+    map.on("mouseleave", "pillars", () => { map.getCanvas().style.cursor = ""; pop.remove(); });
+  } else if (key !== styleKey) {
+    styleKey = key;
+    stopPlay();
+    map.setStyle(STYLE[key]);
+  }
+}
+function updateRoute(animate) {
+  stopPlay();
+  const r = D.sample_routes[routeIdx];
+  routeInfo.textContent = T.routeInfo(r, T.score[r.score], pct);
+  const ramp = rampFor(r.score);
+  rampSwatch.style.background = `linear-gradient(90deg, ${ramp(0)}, ${ramp(.5)}, ${ramp(1)})`;
+  if (!map || !map.getSource("stops")) return;
+  const g = routeGeo(r);
+  map.getSource("stops").setData(g.stops);
+  map.getSource("route").setData(g.line);
+  ["route-glow", "route-line"].forEach(id => map.setPaintProperty(id, "line-color", color(r.score)));
+  map.setPaintProperty("driver", "circle-color", color(r.score));
+  fit(animate);
 }
 function renderRoutes() {
   routePick.innerHTML = D.sample_routes.map((r, i) => `<option value="${i}">${T.score[r.score]} · ${r.n_stops} ${T.stops} · ${r.route_id.slice(0, 18)}…</option>`).join("");
   routePick.value = routeIdx;
+  playLabel.textContent = play ? T.pause : T.play;
   if (view === "rt") drawRoute(routeIdx);
 }
 function drawRoute(i) {
-  ensureMap();
   routeIdx = i;
-  const r = D.sample_routes[i];
-  layer.clearLayers();
-  const c = color(r.score);
-  L.polyline(r.points, { color: c, weight: 2, opacity: 0.85 }).addTo(layer);
-  r.points.forEach((p, k) => L.circleMarker(p, k === 0 ? { radius: 8, color: c, weight: 3, fillOpacity: 0 }
-      : { radius: 4, color: css("--surface-1"), weight: 2, fillColor: c, fillOpacity: 1 })
-    .bindTooltip(k === 0 ? T.station : `${T.stop} #${k}${r.zones[k] ? ` · ${T.zone} ${r.zones[k]}` : ""}`).addTo(layer));
-  map.invalidateSize();
-  map.fitBounds(L.latLngBounds(r.points.slice(1)), { padding: [20, 20] });
-  routeInfo.textContent = T.routeInfo(r, T.score[r.score], pct);
+  ensureMap();
+  map.resize();
+  updateRoute(true);
 }
 routePick.onchange = e => drawRoute(+e.target.value);
+document.querySelectorAll("[data-pitch]").forEach(b => b.onclick = () => {
+  pitch = +b.dataset.pitch;
+  document.querySelectorAll("[data-pitch]").forEach(q => q.setAttribute("aria-pressed", String(q === b)));
+  if (map) map.easeTo({ pitch, bearing: pitch ? -24 : 0, duration: 900 });
+});
+
+// Playback: the driver dot walks the sequence and pillars appear as each stop is reached.
+function stopPlay() {
+  if (play) cancelAnimationFrame(play.raf);
+  play = null;
+  if (T) playLabel.textContent = T.play;
+  playProgress.textContent = "";
+  if (map && map.getLayer("pillars")) {
+    map.setFilter("pillars", null);
+    map.getSource("driver").setData({ type: "FeatureCollection", features: [] });
+  }
+}
+playBtn.onclick = () => {
+  if (play) return stopPlay();
+  if (!map || !map.getSource("stops")) return;
+  const pts = D.sample_routes[routeIdx].points, n = pts.length - 1;
+  const speed = matchMedia("(prefers-reduced-motion: reduce)").matches ? n : n / 18000; // whole route in ~18 s
+  play = { t0: performance.now() };
+  playLabel.textContent = T.pause;
+  const step = now => {
+    if (!play) return;
+    const pos = Math.min(n, 1 + (now - play.t0) * speed);
+    const k = Math.floor(pos), f = pos - k, a = pts[k], b = pts[Math.min(n, k + 1)];
+    map.getSource("driver").setData({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [a[1] + (b[1] - a[1]) * f, a[0] + (b[0] - a[0]) * f] } });
+    map.setFilter("pillars", ["<=", ["get", "seq"], k]);
+    playProgress.textContent = T.playing(fmt(k), fmt(n));
+    if (pos < n) play.raf = requestAnimationFrame(step);
+    else { play = null; playLabel.textContent = T.play; }
+  };
+  play.raf = requestAnimationFrame(step);
+};
 
 /* ---------- Shell ---------- */
 function show(v) {
