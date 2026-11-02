@@ -303,7 +303,6 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
         <button type="button" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-lang="id" aria-pressed="false">ID</button>
       </div>
-      <button type="button" class="chip" id="dlBtn"><span data-i18n="download"></span><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
     </div>
 
     <!-- Overview -->
@@ -429,7 +428,7 @@ const I18N = {
   en: {
     locale: "en-US", pageTitle: "Last Mile Routes",
     navOverview: "Overview", navAnalysis: "Analysis", navRoutes: "Sample routes", toggleTheme: "Theme", light: "Light", dark: "Dark",
-    download: "Download", mapAria: "Map of delivery stations in the United States",
+    mapAria: "Map of delivery stations in the United States",
     hello: "Hi there 👋",
     ovSub: (k, f) => `${f(k.routes)} Amazon delivery routes, ${k.date_min} to ${k.date_max}. Pick a city to focus the cards.`,
     tabCities: "Cities", tabStations: "Stations",
@@ -478,12 +477,11 @@ const I18N = {
       `The model's strongest signals are ${top.join(", ")} (AUC ${auc}), so quality is only partly predictable from the sequence.`,
     ],
     footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán et al., Transportation Science 2024), Registry of Open Data on AWS. Training set only; Amazon obfuscated the coordinates. State outlines: US Census via us-atlas.",
-    csvCols: ["station", "city", "routes", "share_high"],
   },
   id: {
     locale: "id-ID", pageTitle: "Rute Last Mile",
     navOverview: "Ringkasan", navAnalysis: "Analisis", navRoutes: "Contoh rute", toggleTheme: "Tema", light: "Terang", dark: "Gelap",
-    download: "Unduh", mapAria: "Peta stasiun pengiriman di Amerika Serikat",
+    mapAria: "Peta stasiun pengiriman di Amerika Serikat",
     hello: "Halo 👋",
     ovSub: (k, f) => `${f(k.routes)} rute pengiriman Amazon, ${k.date_min} sampai ${k.date_max}. Pilih kota untuk memfokuskan kartu.`,
     tabCities: "Kota", tabStations: "Stasiun",
@@ -532,7 +530,6 @@ const I18N = {
       `Sinyal terkuat model adalah ${top.join(", ")} (AUC ${String(auc).replace(".", ",")}), jadi kualitas rute hanya sebagian yang bisa diprediksi dari urutan stop.`,
     ],
     footer: "Data: 2021 Amazon Last Mile Routing Research Challenge (Merchán dkk., Transportation Science 2024), Registry of Open Data on AWS. Hanya data training; koordinat sudah diacak oleh Amazon. Batas negara bagian: US Census via us-atlas.",
-    csvCols: ["stasiun", "kota", "rute", "persen_tinggi"],
   },
 };
 
@@ -1054,15 +1051,6 @@ function setTheme(th) {
   if (T) render();
 }
 document.querySelectorAll("[data-theme-set]").forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
-
-document.getElementById("dlBtn").onclick = () => {
-  const rows = (STATIONS || []).filter(s => !focusCity || s.city === focusCity);
-  const csv = [T.csvCols.join(",")].concat(rows.map(s => [s.station_code, s.city, s.routes, s.high_pct].join(","))).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  a.download = `stations${focusCity ? "-" + focusCity.toLowerCase().replace(/\s+/g, "-") : ""}.csv`;
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-};
 
 addEventListener("resize", () => { if (view === "ov") drawMap(); });
 
