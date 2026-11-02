@@ -416,7 +416,7 @@ const I18N = {
     modelNote: (m, p) => `Random forest, High vs. not-High, 5-fold cross-validated ROC AUC ${m.auc} (base rate ${p(m.base_rate)}). Bars show feature importance.`,
     importance: "Importance",
     mapTitle: "Sample routes in Boston",
-    mapNote: "3D view of the stop sequence the driver actually drove. Each pillar is a stop; Amazon obfuscated the coordinates. Right-drag or Ctrl-drag to rotate and tilt.",
+    mapNote: "3D view of the stop sequence the driver actually drove. Each floating prism points down at a stop; Amazon obfuscated the coordinates. Right-drag or Ctrl-drag to rotate and tilt.",
     routePickAria: "Choose a route", legendSeq: "First stop → last stop", play: "Play route", pause: "Pause", viewMode: "View", playing: (k, n) => `Stop ${k} of ${n}`, stops: "stops", station: "Station", stop: "Stop", zone: "zone",
     routeInfo: (r, s, p) => `Score ${s} · ${r.n_stops} stops · ~${r.path_km} km straight-line · ${p(r.zones_revisited_pct)} of zones revisited`,
     cityTableTitle: "City summary",
@@ -470,7 +470,7 @@ const I18N = {
     modelNote: (m, p) => `Random forest, Tinggi vs. bukan Tinggi, ROC AUC ${String(m.auc).replace(".", ",")} dengan cross-validation 5-fold (base rate ${p(m.base_rate)}). Bar menunjukkan tingkat kepentingan fitur.`,
     importance: "Kepentingan",
     mapTitle: "Contoh rute di Boston",
-    mapNote: "Tampilan 3D urutan stop yang benar-benar dilalui driver. Setiap tiang adalah satu stop; koordinat sudah diacak oleh Amazon. Klik kanan + geser atau Ctrl + geser untuk memutar dan memiringkan.",
+    mapNote: "Tampilan 3D urutan stop yang benar-benar dilalui driver. Setiap prisma melayang menunjuk ke satu stop; koordinat sudah diacak oleh Amazon. Klik kanan + geser atau Ctrl + geser untuk memutar dan memiringkan.",
     routePickAria: "Pilih rute", legendSeq: "Stop pertama → stop terakhir", play: "Putar rute", pause: "Jeda", viewMode: "Tampilan", playing: (k, n) => `Stop ${k} dari ${n}`, stops: "stop", station: "Stasiun", stop: "Stop", zone: "zona",
     routeInfo: (r, s, p) => `Skor ${s} · ${r.n_stops} stop · ~${String(r.path_km).replace(".", ",")} km garis lurus · ${p(r.zones_revisited_pct)} zona dikunjungi ulang`,
     cityTableTitle: "Ringkasan per kota",
@@ -658,19 +658,31 @@ const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mix = (a, b, k) => "#" + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k).toString(16).padStart(2, "0")).join("");
 const rampFor = sc => { const c = color(sc), lo = mix(c, "#ffffff", 0.75), hi = mix(c, "#000000", 0.45); return k => k < .5 ? mix(lo, c, k * 2) : mix(c, hi, (k - .5) * 2); };
 const isDark = () => document.documentElement.dataset.theme === "dark";
-// A small square footprint (in metres) around a point, extruded into a pillar.
-function square([lat, lng], m) {
-  const dLat = m / 111320, dLng = m / (111320 * Math.cos(lat * Math.PI / 180));
-  return [[[lng - dLng, lat - dLat], [lng + dLng, lat - dLat], [lng + dLng, lat + dLat], [lng - dLng, lat + dLat], [lng - dLng, lat - dLat]]];
+// Fill-extrusions can only rise straight up, so an inverted prism is built from stacked triangular
+// slices that widen with height: the tip points at the stop and the whole marker floats above the map.
+const PRISM = { slices: 8, float: 35, tall: 55, half: 15 };
+function triangle([lat, lng], m) {
+  const kLat = 1 / 111320, kLng = 1 / (111320 * Math.cos(lat * Math.PI / 180));
+  const ring = [-90, 30, 150].map(a => [lng + Math.cos(a * Math.PI / 180) * m * kLng, lat - Math.sin(a * Math.PI / 180) * m * kLat]);
+  return [[...ring, ring[0]]];
 }
 function routeGeo(r) {
   const ramp = rampFor(r.score), n = r.points.length - 1;
-  const stops = r.points.map((p, k) => ({ type: "Feature",
-    properties: { seq: k, label: k === 0 ? T.station : `${T.stop} #${k}`, zone: r.zones[k] || "",
-      color: k === 0 ? (isDark() ? "#f0f1f3" : "#101114") : ramp((k - 1) / Math.max(1, n - 1)), h: k === 0 ? 220 : 60 + 60 * (k / n) },
-    geometry: { type: "Polygon", coordinates: square(p, k === 0 ? 45 : 14) } }));
+  const stops = [], shadows = [];
+  r.points.forEach((p, k) => {
+    const station = k === 0, s = station ? 2.4 : 1;
+    const props = { seq: k, label: station ? T.station : `${T.stop} #${k}`, zone: r.zones[k] || "",
+      color: station ? (isDark() ? "#f0f1f3" : "#101114") : ramp((k - 1) / Math.max(1, n - 1)) };
+    const base = PRISM.float * s, tall = PRISM.tall * s, step = tall / PRISM.slices;
+    for (let i = 0; i < PRISM.slices; i++) {
+      stops.push({ type: "Feature", properties: { ...props, b: base + i * step, h: base + (i + 1) * step },
+        geometry: { type: "Polygon", coordinates: triangle(p, PRISM.half * s * (i + 1) / PRISM.slices) } });
+    }
+    shadows.push({ type: "Feature", properties: { seq: k, r: s }, geometry: { type: "Point", coordinates: [p[1], p[0]] } });
+  });
   const line = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: r.points.slice(1).map(p => [p[1], p[0]]) } };
-  return { stops: { type: "FeatureCollection", features: stops }, line: { type: "FeatureCollection", features: [line] } };
+  return { stops: { type: "FeatureCollection", features: stops }, shadows: { type: "FeatureCollection", features: shadows },
+    line: { type: "FeatureCollection", features: [line] } };
 }
 function addLayers() {
   const r = D.sample_routes[routeIdx], g = routeGeo(r);
@@ -687,8 +699,13 @@ function addLayers() {
     paint: { "line-color": color(r.score), "line-width": 10, "line-opacity": 0.18, "line-blur": 4 } });
   map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
     paint: { "line-color": color(r.score), "line-width": 2.5, "line-opacity": 0.9 } });
+  map.addSource("shadows", { type: "geojson", data: g.shadows });
+  map.addLayer({ id: "shadows", type: "circle", source: "shadows",
+    paint: { "circle-color": "#000000", "circle-opacity": isDark() ? 0.35 : 0.16, "circle-blur": 0.9, "circle-pitch-alignment": "map",
+      "circle-radius": ["*", ["get", "r"], ["interpolate", ["exponential", 2], ["zoom"], 11, 2, 14, 7, 17, 40]] } });
   map.addLayer({ id: "pillars", type: "fill-extrusion", source: "stops",
-    paint: { "fill-extrusion-color": ["get", "color"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.92 } });
+    paint: { "fill-extrusion-color": ["get", "color"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-base": ["get", "b"],
+      "fill-extrusion-opacity": 0.95, "fill-extrusion-vertical-gradient": true } });
   map.addLayer({ id: "driver", type: "circle", source: "driver",
     paint: { "circle-radius": 9, "circle-color": color(r.score), "circle-stroke-color": "#ffffff", "circle-stroke-width": 3, "circle-pitch-alignment": "map" } });
 }
@@ -728,6 +745,7 @@ function updateRoute(animate) {
   if (!map || !map.getSource("stops")) return;
   const g = routeGeo(r);
   map.getSource("stops").setData(g.stops);
+  map.getSource("shadows").setData(g.shadows);
   map.getSource("route").setData(g.line);
   ["route-glow", "route-line"].forEach(id => map.setPaintProperty(id, "line-color", color(r.score)));
   map.setPaintProperty("driver", "circle-color", color(r.score));
@@ -760,6 +778,7 @@ function stopPlay() {
   playProgress.textContent = "";
   if (map && map.getLayer("pillars")) {
     map.setFilter("pillars", null);
+    map.setFilter("shadows", null);
     map.getSource("driver").setData({ type: "FeatureCollection", features: [] });
   }
 }
@@ -776,6 +795,7 @@ playBtn.onclick = () => {
     const k = Math.floor(pos), f = pos - k, a = pts[k], b = pts[Math.min(n, k + 1)];
     map.getSource("driver").setData({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [a[1] + (b[1] - a[1]) * f, a[0] + (b[0] - a[0]) * f] } });
     map.setFilter("pillars", ["<=", ["get", "seq"], k]);
+    map.setFilter("shadows", ["<=", ["get", "seq"], k]);
     playProgress.textContent = T.playing(fmt(k), fmt(n));
     if (pos < n) play.raf = requestAnimationFrame(step);
     else { play = null; playLabel.textContent = T.play; }
