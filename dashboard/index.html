@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="data.js"></script>
 <script src="extra.js"></script>
+<script src="travel.js"></script>
 <style>
 /* Layout: icon rail + full-bleed map stage with floating glass panels (overview); scrolling views for analysis and routes. */
 :root {
@@ -157,6 +158,7 @@ select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid 
 .summary ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 8px; }
 .summary li { line-height: 1.5; max-width: 110ch; }
 .summary li::marker { color: var(--s-high); font-weight: 650; }
+.sec-note { max-width: 110ch; margin: 6px 0 0; }
 .sec-h { font-size: 19px; margin: 36px 0 0; letter-spacing: -0.01em; }
 .formula { font-size: 15px; padding: 12px 14px; border-radius: 14px; background: var(--lg-sel); box-shadow: inset 0 1px 0 var(--lg-hi); margin: 4px 0 14px; font-variant-numeric: tabular-nums; }
 .formula .lhs { color: var(--text-secondary); }
@@ -371,6 +373,25 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
       <div class="grid two">
         <section class="card"><h2 data-i18n="xStScatterTitle"></h2><p class="note" id="xStScatterNote"></p><div class="chart" style="height:340px"><canvas id="xStScatter"></canvas></div><p class="hl" data-hl="xStScatter" hidden></p></section>
         <section class="card"><h2 data-i18n="xStTableTitle"></h2><p class="note" data-i18n="xStTableNote"></p><div class="scroll"><table id="xStTable" class="sortable"></table></div><p class="hl" data-hl="xStTable" hidden></p></section>
+      </div>
+
+      <!-- Optimizer gap -->
+      <h2 class="sec-h" data-i18n="tGapSection"></h2>
+      <p class="note sec-note" data-i18n="tGapIntro"></p>
+      <div class="grid kpis" id="tGapKpis"></div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="tGapHistTitle"></h2><p class="note" data-i18n="tGapHistNote"></p><div class="chart"><canvas id="tGapHist"></canvas></div><p class="hl" data-hl="tGapHist" hidden></p></section>
+        <section class="card"><h2 data-i18n="tGapStTitle"></h2><p class="note" data-i18n="tGapStNote"></p><div class="chart" style="height:380px"><canvas id="tGapSt"></canvas></div><p class="hl" data-hl="tGapSt" hidden></p></section>
+      </div>
+      <section class="card" style="margin-top:16px"><h2 data-i18n="tZoneTitle"></h2><p class="note" id="tZoneNote"></p><div class="scroll"><table id="tZoneTable"></table></div><p class="hl" data-hl="tZoneTable" hidden></p></section>
+
+      <!-- Time-window risk -->
+      <h2 class="sec-h" data-i18n="tTwSection"></h2>
+      <p class="note sec-note" data-i18n="tTwIntro"></p>
+      <div class="grid kpis" id="tTwKpis"></div>
+      <div class="grid two">
+        <section class="card"><h2 data-i18n="tSlackTitle"></h2><p class="note" id="tSlackNote"></p><div class="legend" id="tSlackLegend"></div><div class="chart"><canvas id="tSlack"></canvas></div><p class="hl" data-hl="tSlack" hidden></p></section>
+        <section class="card"><h2 data-i18n="tTwStTitle"></h2><p class="note" data-i18n="tTwStNote"></p><div class="chart" style="height:380px"><canvas id="tTwSt"></canvas></div><p class="hl" data-hl="tTwSt" hidden></p></section>
       </div>
       <section class="card summary end"><h2 data-i18n="summaryTitle"></h2><p class="note" data-i18n="summaryNote"></p><ol id="summaryList"></ol></section>
       <footer data-i18n="footer"></footer>
@@ -672,6 +693,7 @@ function renderAnalysis() {
   const best = [...D.by_city].sort((a, b) => b.high_pct - a.high_pct)[0];
   renderExtra();
   renderHighlights();
+  renderTravel();
 }
 
 /* ---------- Extra analyses (High vs Low, capacity, service time, stations) ---------- */
@@ -939,6 +961,119 @@ function renderHighlights() {
     el.hidden = !fn;
   });
   document.getElementById("summaryList").innerHTML = T.summary(F, fmt, pct, sc).map(s => `<li>${s}</li>`).join("");
+}
+
+/* ---------- Optimizer gap + time-window risk (needs travel times) ---------- */
+const TT = window.ALMRRC_T;
+const byS = (arr, s) => arr.find(r => r.route_score === s) || {};
+const hm = (h, f) => `${f(Math.floor(h))}h ${String(Math.round((h % 1) * 60)).padStart(2, "0")}m`;
+Object.assign(I18N.en, {
+  tGapSection: "Optimizer vs driver",
+  tGapIntro: "Drive time between stops from Amazon's travel-time matrix, for the order the driver actually took versus the fastest order our solver found (nearest-neighbour + 2-opt + Or-opt, seeded with the driver's own order, so it is never worse). Station to last stop, without the return leg. OR-Tools could not be installed here; this local search is close to, but not proven, optimal.",
+  tGapKpi: ["driver drive time per route", "optimizer drive time per route", "median extra time (driver)", "extra minutes per route (mean)"],
+  tGapHistTitle: "How much longer drivers drive than the optimizer",
+  tGapHistNote: "Driver drive time ÷ optimizer drive time − 1, per route.",
+  tGapAxis: "% longer than optimizer", tRoutes: "routes",
+  tGapStTitle: "Gap by station",
+  tGapStNote: "Median extra drive time per route, as % of the optimizer's time.",
+  tZoneTitle: "Zones with the largest gap",
+  tZoneNote: (n, m, s) => `Inside each zone, the driver's path through its stops is compared with an optimized path over the same stops from the same entry stop. Zones visited on at least ${m} routes (${n} zones). On average ${s} of a route's gap is inside zones; the rest comes from the order of zones.`,
+  tZoneCols: ["Station", "Zone", "Routes", "Stops", "Driver (min)", "Optimizer (min)", "Gap (min)", "Gap %"],
+  tTwSection: "Time-window risk",
+  tTwIntro: "Estimated arrival per stop = departure time + drive time along the driver's order + planned service time at earlier stops. Each package with a delivery window is compared with that arrival.",
+  tTwKpi: ["packages with a time window", "estimated late", "at risk (within 15 min)", "late if the optimizer's order were driven"],
+  tSlackTitle: "Minutes left before the window closes",
+  tSlackNote: m => `Negative means the package arrives after its window. Packages within ${m} minutes of the end are at risk.`,
+  tSlackBands: ["Late", "At risk", "Safe"], tPkgs: "packages",
+  tTwStTitle: "Late packages by station: driver vs optimizer",
+  tTwStNote: "Share of time-window packages estimated late, with the driver's order and with the faster optimizer order.",
+  tDriver: "Driver", tOpt: "Optimizer",
+  hlT: {
+    tGapHist: (G, f, p) => `Drivers drive a median ${p(G.median_pct)} longer than the optimizer, about ${f(G.mean_min)} minutes per route. The gap is almost the same for High (${p(byS(G.by_score, "High").gap_pct)}) and Low routes (${p(byS(G.by_score, "Low").gap_pct)}), so it does not explain route quality.`,
+    tGapSt: (G, f, p) => `${G.by_station[0].station_code} has the largest gap (${p(G.by_station[0].gap_pct)}); ${G.by_station.at(-1).station_code} the smallest (${p(G.by_station.at(-1).gap_pct)}).`,
+    tZoneTable: (G, f, p) => G.zones_top.length ? `Zone ${G.zones_top[0].zone_id} at ${G.zones_top[0].station_code} loses the most time: ${f(G.zones_top[0].gap_s / 60, 1)} minutes per visit (${p(G.zones_top[0].gap_pct, 0)} over the optimized path).` : "",
+    tSlack: (W, f, p) => `Only ${p(W.late_pct)} of time-window packages are estimated late and ${p(W.risk_pct)} at risk, but the rate differs sharply by score: ${p(byS(W.by_score, "Low").late_pct)} on Low routes vs ${p(byS(W.by_score, "High").late_pct)} on High routes.`,
+    tTwSt: (W, f, p) => `The optimizer's faster order would make ${p(W.late_opt_pct)} of these packages late, ${f(W.late_opt_pct / Math.max(W.late_pct, 1e-9), 1)}× the driver's rate. Part of the driver's extra drive time buys on-time delivery.`,
+  },
+  sumT: (G, W, f, p) => `<b>Late deliveries separate Low routes; the optimizer gap does not.</b> Drivers drive a median ${p(G.median_pct)} (about ${f(G.mean_min)} min) longer than the optimizer at every score level. But ${p(byS(W.by_score, "Low").late_pct)} of time-window packages on Low routes arrive late, versus ${p(byS(W.by_score, "High").late_pct)} on High routes. The optimizer's faster order would make ${p(W.late_opt_pct)} late overall, so part of the gap is the price of keeping time windows.`,
+});
+Object.assign(I18N.id, {
+  tGapSection: "Optimizer vs driver",
+  tGapIntro: "Waktu tempuh antar stop dari matriks travel time Amazon, untuk urutan yang benar-benar dilalui driver dibanding urutan tercepat hasil solver kami (nearest-neighbour + 2-opt + Or-opt, diawali dari urutan driver sendiri, jadi tidak pernah lebih buruk). Dari stasiun sampai stop terakhir, tanpa perjalanan pulang. OR-Tools tidak bisa di-install di sini; pencarian lokal ini mendekati, tapi belum terbukti, optimal.",
+  tGapKpi: ["waktu tempuh driver per rute", "waktu tempuh optimizer per rute", "median waktu ekstra (driver)", "menit ekstra per rute (rata-rata)"],
+  tGapHistTitle: "Seberapa lama driver menyetir dibanding optimizer",
+  tGapHistNote: "Waktu tempuh driver ÷ waktu tempuh optimizer − 1, per rute.",
+  tGapAxis: "% lebih lama dari optimizer", tRoutes: "rute",
+  tGapStTitle: "Gap per stasiun",
+  tGapStNote: "Median waktu tempuh ekstra per rute, dalam % dari waktu optimizer.",
+  tZoneTitle: "Zona dengan gap terbesar",
+  tZoneNote: (n, m, s) => `Di dalam tiap zona, jalur driver melewati stop-stopnya dibandingkan dengan jalur teroptimasi atas stop yang sama dari stop masuk yang sama. Hanya zona yang dikunjungi minimal ${m} rute (${n} zona). Rata-rata ${s} gap per rute terjadi di dalam zona; sisanya dari urutan antar zona.`,
+  tZoneCols: ["Stasiun", "Zona", "Rute", "Stop", "Driver (mnt)", "Optimizer (mnt)", "Gap (mnt)", "Gap %"],
+  tTwSection: "Risiko pelanggaran time window",
+  tTwIntro: "Estimasi jam tiba per stop = jam berangkat + waktu tempuh sesuai urutan driver + waktu layanan terencana di stop-stop sebelumnya. Setiap paket yang punya jendela pengiriman dibandingkan dengan estimasi jam tiba itu.",
+  tTwKpi: ["paket dengan time window", "estimasi telat", "berisiko (≤ 15 menit)", "telat jika urutan optimizer yang dipakai"],
+  tSlackTitle: "Sisa menit sebelum time window ditutup",
+  tSlackNote: m => `Nilai negatif berarti paket tiba setelah jendelanya ditutup. Paket yang tiba ${m} menit atau kurang sebelum batas akhir dianggap berisiko.`,
+  tSlackBands: ["Telat", "Berisiko", "Aman"], tPkgs: "paket",
+  tTwStTitle: "Paket telat per stasiun: driver vs optimizer",
+  tTwStNote: "Persentase paket ber-time window yang diperkirakan telat, dengan urutan driver dan dengan urutan optimizer yang lebih cepat.",
+  tDriver: "Driver", tOpt: "Optimizer",
+  hlT: {
+    tGapHist: (G, f, p) => `Median waktu tempuh driver ${p(G.median_pct)} lebih lama dari optimizer, sekitar ${f(G.mean_min)} menit per rute. Gap-nya hampir sama untuk rute Tinggi (${p(byS(G.by_score, "High").gap_pct)}) dan Rendah (${p(byS(G.by_score, "Low").gap_pct)}), jadi tidak menjelaskan kualitas rute.`,
+    tGapSt: (G, f, p) => `${G.by_station[0].station_code} punya gap terbesar (${p(G.by_station[0].gap_pct)}); ${G.by_station.at(-1).station_code} terkecil (${p(G.by_station.at(-1).gap_pct)}).`,
+    tZoneTable: (G, f, p) => G.zones_top.length ? `Zona ${G.zones_top[0].zone_id} di ${G.zones_top[0].station_code} paling banyak membuang waktu: ${f(G.zones_top[0].gap_s / 60, 1)} menit per kunjungan (${p(G.zones_top[0].gap_pct, 0)} di atas jalur teroptimasi).` : "",
+    tSlack: (W, f, p) => `Hanya ${p(W.late_pct)} paket ber-time window yang diperkirakan telat dan ${p(W.risk_pct)} berisiko, tapi angkanya sangat berbeda per skor: ${p(byS(W.by_score, "Low").late_pct)} pada rute Rendah vs ${p(byS(W.by_score, "High").late_pct)} pada rute Tinggi.`,
+    tTwSt: (W, f, p) => `Urutan optimizer yang lebih cepat akan membuat ${p(W.late_opt_pct)} paket ini telat, ${f(W.late_opt_pct / Math.max(W.late_pct, 1e-9), 1)}× lipat dari driver. Sebagian waktu ekstra driver dipakai untuk menjaga ketepatan waktu.`,
+  },
+  sumT: (G, W, f, p) => `<b>Keterlambatan membedakan rute Rendah; gap optimizer tidak.</b> Median waktu tempuh driver ${p(G.median_pct)} (sekitar ${f(G.mean_min)} mnt) lebih lama dari optimizer di semua tingkat skor. Tapi ${p(byS(W.by_score, "Low").late_pct)} paket ber-time window pada rute Rendah tiba telat, dibanding ${p(byS(W.by_score, "High").late_pct)} pada rute Tinggi. Urutan optimizer yang lebih cepat akan membuat ${p(W.late_opt_pct)} paket telat, jadi sebagian gap adalah harga untuk menjaga time window.`,
+});
+
+function renderTravel() {
+  if (!TT) return;
+  const G = TT.gap, W = TT.tw;
+  document.getElementById("tGapKpis").innerHTML = [hm(G.actual_h, fmt), hm(G.opt_h, fmt), pct(G.median_pct), fmt(G.mean_min, 1)]
+    .map((v, i) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.tGapKpi[i]}</div></div>`).join("");
+  const e = G.hist.edges, cnt = G.hist.counts;
+  charts.push(new Chart(tGapHist, { type: "bar",
+    data: { labels: cnt.map((_, i) => pct(e[i], 0)), datasets: [{ data: cnt, backgroundColor: color("High"), borderRadius: 3, categoryPercentage: .95, barPercentage: .95 }] },
+    options: { scales: { x: { grid: { display: false }, title: { display: true, text: T.tGapAxis }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } },
+      plugins: { tooltip: { callbacks: { title: c => `${pct(e[c[0].dataIndex], 1)}–${pct(e[c[0].dataIndex + 1], 1)}`, label: c => `${fmt(c.raw)} ${T.tRoutes}` } } } } }));
+  const gs = G.by_station;
+  charts.push(new Chart(tGapSt, { type: "bar",
+    data: { labels: gs.map(s => s.station_code), datasets: [{ data: gs.map(s => s.gap_pct * 100), backgroundColor: gs.map((s, i) => i < 3 ? css("--s-medium") : color("High")), borderRadius: 3, barThickness: 12 }] },
+    options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: c => { const s = gs[c.dataIndex]; return [`${s.city}`, `${fmt(c.raw, 1)}% · ${fmt(s.gap_min, 1)} min`, `${fmt(s.routes)} ${T.tRoutes}`]; } } } } } }));
+  document.getElementById("tZoneNote").textContent = T.tZoneNote(fmt(G.zone_count), 20, pct(G.split.intra_s / G.split.total_s, 0));
+  tZoneTable.innerHTML = "<tr>" + T.tZoneCols.map(c => `<th>${c}</th>`).join("") + "</tr>" +
+    G.zones_top.map(z => `<tr><td>${z.station_code}</td><td>${z.zone_id}</td><td>${fmt(z.visits)}</td><td>${fmt(z.stops, 1)}</td><td>${fmt(z.driver_s / 60, 1)}</td><td>${fmt(z.opt_s / 60, 1)}</td><td><i class="cellbar" style="width:${40 * z.gap_s / G.zones_top[0].gap_s}px;background:var(--s-medium)"></i>${fmt(z.gap_s / 60, 1)}</td><td>${pct(z.gap_pct, 0)}</td></tr>`).join("");
+
+  document.getElementById("tTwKpis").innerHTML = [fmt(W.packages), pct(W.late_pct, 2), pct(W.risk_pct, 2), pct(W.late_opt_pct, 2)]
+    .map((v, i) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.tTwKpi[i]}</div></div>`).join("");
+  document.getElementById("tSlackNote").textContent = T.tSlackNote(W.risk_min);
+  const band = [css("--bad"), css("--warn"), css("--good")];
+  document.getElementById("tSlackLegend").innerHTML = T.tSlackBands.map((b, i) => `<span><i style="background:${band[i]}"></i>${b}</span>`).join("");
+  const se = W.slack_hist.edges, sc_ = W.slack_hist.counts;
+  charts.push(new Chart(tSlack, { type: "bar",
+    data: { labels: sc_.map((_, i) => fmt(se[i])), datasets: [{ data: sc_, backgroundColor: sc_.map((_, i) => se[i] < 0 ? band[0] : se[i] < W.risk_min ? band[1] : band[2]), borderRadius: 3, categoryPercentage: .95, barPercentage: .95 }] },
+    options: { scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { beginAtZero: true, type: "logarithmic" } },
+      plugins: { tooltip: { callbacks: { title: c => `${fmt(se[c[0].dataIndex])} … ${fmt(se[c[0].dataIndex + 1])} min`, label: c => `${fmt(c.raw)} ${T.tPkgs}` } } } } }));
+  const ts = W.by_station;
+  charts.push(new Chart(tTwSt, { type: "bar",
+    data: { labels: ts.map(s => s.station_code), datasets: [
+      { label: T.tDriver, data: ts.map(s => s.late_pct * 100), backgroundColor: color("High"), borderRadius: 3, barThickness: 9 },
+      { label: T.tOpt, data: ts.map(s => s.late_opt_pct * 100), backgroundColor: css("--s-medium"), borderRadius: 3, barThickness: 9 }] },
+    options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false } } },
+      plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 2)}% (${fmt(ts[c.dataIndex].packages)} ${T.tPkgs})` } } } } }));
+
+  document.querySelectorAll("[data-hl^='t']").forEach(el => {
+    const fn = T.hlT[el.dataset.hl];
+    const txt = fn ? fn(el.dataset.hl.startsWith("tGap") || el.dataset.hl === "tZoneTable" ? G : W, fmt, pct) : "";
+    el.innerHTML = txt ? `<span class="hl-k">${T.hlLabel}</span>${txt}` : "";
+    el.hidden = !txt;
+  });
+  const items = document.querySelectorAll("#summaryList li");
+  if (items.length) items[items.length - 1].innerHTML = T.sumT(G, W, fmt, pct);
 }
 
 /* ---------- Routes (3D) ---------- */
