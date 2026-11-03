@@ -311,7 +311,9 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 .hello { display: flex; flex-direction: column; }
 #cityList { overflow-y: auto; min-height: 0; flex: 0 1 auto; margin-right: -6px; padding-right: 6px; scrollbar-width: thin; }
 .hello .legend-mini { flex: none; }
-.city-row { padding-top: 2px; padding-bottom: 2px; }
+.city-row { padding-top: 4px; padding-bottom: 4px; grid-template-columns: 74px 78px 1fr 34px; }
+.city-row .reg { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hello { width: min(380px, calc(100% - 80px)); }
 .gcard h3 { font-weight: 500; }
 #an h1 { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
 #an .sec-h { font-weight: 300; font-size: 30px; letter-spacing: -0.02em; margin-top: 44px; }
@@ -613,10 +615,10 @@ function drawCityList() {
   const groups = {};
   D.by_city.forEach(c => (groups[T.region[c.city]] ||= []).push(c));
   const el = document.getElementById("cityList");
-  el.innerHTML = Object.entries(groups).map(([g, cs]) => `<div class="group-label">${g}</div>` + cs.map(c => {
+  el.innerHTML = Object.entries(groups).map(([g, cs]) => cs.map(c => {
     const m = D.score_by_city[c.city];
     const bars = SCORES.map(s => `<i style="width:${(m[s] || 0) * 100}%;background:var(--${s === "High" ? "good" : s === "Medium" ? "warn" : "bad"})"></i>`).join("");
-    return `<button type="button" class="city-row" data-city="${c.city}" aria-pressed="${focusCity === c.city}"><span>${c.city}</span><span class="bar">${bars}</span><span class="v">${pct(c.high_pct, 0)}</span></button>`;
+    return `<button type="button" class="city-row" data-city="${c.city}" aria-pressed="${focusCity === c.city}"><span class="reg">${g}</span><span>${c.city}</span><span class="bar">${bars}</span><span class="v">${pct(c.high_pct, 0)}</span></button>`;
   }).join("")).join("");
   el.querySelectorAll(".city-row").forEach(b => b.onclick = () => { focusCity = focusCity === b.dataset.city ? null : b.dataset.city; renderOverview(); });
   document.getElementById("dotLegend").innerHTML = ["good", "warn", "bad"].map((k, i) => `<span><i style="background:var(--${k})"></i>${T.dotLegend[i]}</span>`).join("");
