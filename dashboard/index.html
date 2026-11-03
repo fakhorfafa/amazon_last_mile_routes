@@ -263,6 +263,42 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   .rt-panel { left: 12px; right: 12px; top: 58px; width: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .rail button, .chip.lang button { transition: none; } }
+
+/* ---------- Liquid Glass on the analysis view ---------- */
+#an.scrollview {
+  background:
+    radial-gradient(40% 35% at 12% 8%, rgba(120, 175, 255, .45), transparent 70%),
+    radial-gradient(35% 30% at 88% 18%, rgba(120, 235, 190, .38), transparent 70%),
+    radial-gradient(45% 35% at 70% 62%, rgba(255, 190, 150, .30), transparent 70%),
+    radial-gradient(40% 35% at 18% 85%, rgba(190, 160, 255, .30), transparent 70%),
+    linear-gradient(180deg, #eef3fa, #f4f1f7);
+  background-attachment: local;
+}
+#an .card {
+  position: relative; isolation: isolate; border: 0; border-radius: 24px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .28));
+  backdrop-filter: var(--lg-blur); -webkit-backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-drop), inset 0 1px 0 var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 18px rgba(255, 255, 255, .1);
+}
+#an .card::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 1;
+  background: linear-gradient(135deg, var(--lg-edge) 0%, var(--lg-edge-2) 35%, transparent 55%, var(--lg-edge-2) 80%, var(--lg-edge) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+#an .card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 50% at 20% 0%, rgba(255, 255, 255, .35), transparent 60%);
+}
+#an .card > * { position: relative; z-index: 2; }
+#an .kpi { border-radius: 20px; }
+#an .kpi .v { font-weight: 650; letter-spacing: -0.01em; }
+#an th, #an td { border-bottom-color: rgba(120, 140, 170, .18); }
+#an .hl { background: linear-gradient(135deg, rgba(255, 255, 255, .7), rgba(220, 235, 255, .45));
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 3px 0 0 var(--s-high), inset 0 1px 0 var(--lg-hi), 0 4px 14px rgba(40, 70, 120, .08); }
+#an .formula { background: rgba(255, 255, 255, .6); }
+#an footer { color: var(--text-secondary); }
 </style>
 </head>
 <body>
