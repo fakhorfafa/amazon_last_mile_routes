@@ -75,7 +75,7 @@ body { margin: 0; background: var(--frame); color: var(--text-primary);
 .city-row .bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(0,0,0,.08); gap: 2px; }
 .city-row .bar i { display: block; height: 100%; border-radius: 3px; }
 .city-row .v { text-align: right; font-variant-numeric: tabular-nums; }
-.group-label { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 10px 0 2px; }
+.group-label { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 6px 0 0; }
 .legend-mini { display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--text-secondary); margin-top: 10px; }
 .legend-mini i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
 
@@ -307,6 +307,11 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 /* One typeface everywhere: Outfit, including the 3D map's own controls and popups. */
 .maplibregl-map, .maplibregl-popup-content, .maplibregl-ctrl-attrib { font-family: "Outfit", system-ui, sans-serif; }
 .hello h1 { font-weight: 400; }
+/* The panel stops above the glass cards; if the list still does not fit, it scrolls inside the panel. */
+.hello { display: flex; flex-direction: column; }
+#cityList { overflow-y: auto; min-height: 0; flex: 0 1 auto; margin-right: -6px; padding-right: 6px; scrollbar-width: thin; }
+.hello .legend-mini { flex: none; }
+.city-row { padding-top: 2px; padding-bottom: 2px; }
 .gcard h3 { font-weight: 500; }
 #an h1 { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
 #an .sec-h { font-weight: 300; font-size: 30px; letter-spacing: -0.02em; margin-top: 44px; }
@@ -696,7 +701,13 @@ function renderOverview() {
   document.getElementById("ovSub").textContent = T.ovSub(D.kpi, fmt);
   document.getElementById("nCities").textContent = D.by_city.length;
   document.getElementById("nStations").textContent = STATIONS ? STATIONS.length : D.kpi.stations;
-  drawCityList(); drawMap(); drawCards();
+  drawCityList(); drawMap(); drawCards(); fitHello();
+}
+function fitHello() {
+  const hello = document.querySelector(".hello"), cards = document.querySelector("#ov .cards");
+  if (!hello || !cards || view !== "ov") return;
+  if (getComputedStyle(cards).position !== "absolute") { hello.style.maxHeight = ""; return; }
+  hello.style.maxHeight = Math.max(160, cards.getBoundingClientRect().top - hello.getBoundingClientRect().top - 18) + "px";
 }
 
 /* ---------- Analysis ---------- */
@@ -1280,7 +1291,7 @@ function show(v) {
   document.querySelectorAll(".rail [data-view]").forEach(b => b.dataset.view === v ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   if (v === "an") renderAnalysis();
   if (v === "rt") drawRoute(routeIdx);
-  if (v === "ov") drawMap();
+  if (v === "ov") { drawMap(); fitHello(); }
   if (location.hash.slice(1) !== v) history.replaceState(null, "", location.pathname + location.search + "#" + v);
 }
 document.querySelectorAll(".rail [data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
@@ -1306,7 +1317,7 @@ function setLang(l) {
 }
 document.querySelectorAll(".chip.lang button[data-lang]").forEach(b => b.onclick = () => setLang(b.dataset.lang));
 
-addEventListener("resize", () => { if (view === "ov") drawMap(); });
+addEventListener("resize", () => { if (view === "ov") { drawMap(); fitHello(); } });
 
 Chart.defaults.font.family = '"Outfit", system-ui, sans-serif';
 Chart.defaults.font.size = 11;
