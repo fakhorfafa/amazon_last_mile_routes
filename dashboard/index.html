@@ -1185,31 +1185,52 @@ function renderTravel() {
 const GUIDE_KEY = "lm-guide-done";
 const GUIDE = {
   en: { next: "Next", back: "Back", skip: "Skip tour", done: "Start exploring", of: (i, n) => `${i} of ${n}`, help: "Show the guide",
+    rtSteps: [
+      { sel: ".rt-panel header", title: "Sample routes in 3D", text: "This view replays real Amazon routes in Boston exactly in the order the driver drove them. It shows how a driver works through an area, which the charts cannot. Amazon shifted every coordinate slightly for privacy, so stops sit near, not on, the real addresses." },
+      { sel: "#routePick", title: "Choose one of six routes", text: "There are two routes for each score: High, Medium and Low. Pick one to compare how a well-rated route moves through its area against a poorly rated one. The line under the menu shows the route's score, number of stops, straight-line distance, and the share of planning zones the driver left and came back to." },
+      { sel: ".rt-legend", title: "Reading the markers", text: "Each floating prism is one stop, and its tip points at the stop's location. Colour runs from light (first stops) to dark (last stops), so you can follow the driver's order by eye. Prisms get slightly taller later in the route. The large black prism is the delivery station, usually about 15–20 km outside the delivery area." },
+      { sel: "#playBtn", title: "Play the route", text: "Press Play to watch the driver go stop by stop over about 18 seconds. Prisms appear as each stop is reached and the counter shows “Stop 45 of 131”. Press again to pause; choosing another route stops the replay." },
+      { sel: ".rt-actions .chip.lang", title: "2D or 3D", text: "3D tilts the map so you see the prisms and buildings in depth. 2D looks straight down, which is easier for judging distances and spotting where the route doubles back." },
+      { sel: ".maplibregl-ctrl-bottom-right", title: "Moving around the map", text: "Use + and − to zoom, or scroll. Drag to pan. Right-drag, or hold Ctrl and drag, to rotate and tilt. The compass button turns the map back to north. Hover a prism to see its stop number and planning zone." },
+      { sel: "#map3d", pad: -120, title: "What to look for", text: "Good routes usually finish one cluster of stops before moving on, with few long jumps back across the map. Compare a High and a Low route: the analysis found the driving order differs only slightly, while late time-window deliveries are far more common on Low routes." },
+    ],
     steps: [
       { sel: ".hello h1", title: "Welcome to Last Mile Routes", text: "This dashboard looks at 6,112 real Amazon delivery routes and asks one question: what makes a route score High? This short tour shows where everything is." },
       { sel: "#cityList", title: "Pick a city", text: "Each row is a city with its mix of High, Medium and Low routes. Click a city to focus the whole page on it; click it again to see all cities." },
       { sel: "#usmap", pad: -40, title: "Delivery stations on the map", text: "Each glowing dot is a delivery station. Green means at least 50% of its routes score High, yellow 35–50%, red under 35%. Hover a dot for its numbers, or click it to focus its city." },
       { sel: "#ov .cards", title: "Summary cards", text: "Route scores, the share of High routes and delivery volume, for the city you picked or for all cities. “See all” opens the detail behind each card." },
       { sel: '.rail [data-view="an"]', title: "Full analysis", text: "Every chart and finding: what separates High from Low routes, fleet capacity, service time, station benchmarks, the optimizer gap and time-window risk. Each chart has a key highlight, and a summary sits at the bottom." },
-      { sel: '.rail [data-view="rt"]', title: "Routes in 3D", text: "Replay six sample Boston routes stop by stop on a 3D map. Floating markers show the order the driver actually took." },
+      { sel: '.rail [data-view="rt"]', title: "Routes in 3D", text: "Replay six sample Boston routes stop by stop on a 3D map. Floating markers show the order the driver actually took. It has its own step-by-step guide the first time you open it." },
       { sel: ".chip.lang", title: "English or Indonesian", text: "Switch the language at any time. Reopen this guide with the ? button in the sidebar." },
     ] },
   id: { next: "Lanjut", back: "Kembali", skip: "Lewati panduan", done: "Mulai menjelajah", of: (i, n) => `${i} dari ${n}`, help: "Tampilkan panduan",
+    rtSteps: [
+      { sel: ".rt-panel header", title: "Contoh rute dalam 3D", text: "Halaman ini memutar ulang rute Amazon yang nyata di Boston, persis sesuai urutan yang dilalui driver. Di sini terlihat bagaimana driver menyisir sebuah area, hal yang tidak tampak di grafik. Amazon menggeser semua koordinat sedikit demi privasi, jadi stop berada di dekat alamat aslinya, bukan tepat di atasnya." },
+      { sel: "#routePick", title: "Pilih salah satu dari enam rute", text: "Ada dua rute untuk setiap skor: Tinggi, Sedang, dan Rendah. Pilih satu untuk membandingkan cara rute berskor baik menyisir areanya dengan rute berskor buruk. Baris di bawah menu menunjukkan skor rute, jumlah stop, jarak garis lurus, dan persentase zona perencanaan yang ditinggalkan lalu didatangi lagi oleh driver." },
+      { sel: ".rt-legend", title: "Cara membaca penanda", text: "Setiap prisma melayang adalah satu stop, dan ujung lancipnya menunjuk ke lokasi stop. Warnanya bergradasi dari terang (stop awal) ke gelap (stop akhir), jadi urutan driver bisa diikuti dengan mata. Prisma sedikit makin tinggi menjelang akhir rute. Prisma hitam besar adalah stasiun pengiriman, biasanya sekitar 15–20 km di luar area pengantaran." },
+      { sel: "#playBtn", title: "Putar rute", text: "Tekan Putar rute untuk melihat driver bergerak stop demi stop selama sekitar 18 detik. Prisma muncul satu per satu saat stopnya dicapai, dan penghitung menunjukkan “Stop 45 dari 131”. Tekan lagi untuk menjeda; memilih rute lain menghentikan pemutaran." },
+      { sel: ".rt-actions .chip.lang", title: "2D atau 3D", text: "3D memiringkan peta sehingga prisma dan bangunan terlihat berdimensi. 2D melihat lurus dari atas, lebih mudah untuk menilai jarak dan menemukan bagian rute yang berbalik arah." },
+      { sel: ".maplibregl-ctrl-bottom-right", title: "Menggerakkan peta", text: "Pakai + dan − untuk zoom, atau scroll. Geser untuk berpindah. Klik kanan lalu geser, atau tahan Ctrl sambil menggeser, untuk memutar dan memiringkan. Tombol kompas mengembalikan peta ke arah utara. Arahkan kursor ke prisma untuk melihat nomor stop dan zonanya." },
+      { sel: "#map3d", pad: -120, title: "Apa yang perlu diperhatikan", text: "Rute yang baik biasanya menyelesaikan satu kelompok stop sebelum pindah, dengan sedikit lompatan jauh kembali melintasi peta. Bandingkan rute Tinggi dan Rendah: analisis menemukan urutan mengemudinya hanya sedikit berbeda, sedangkan pengiriman yang telat dari time window jauh lebih sering terjadi pada rute Rendah." },
+    ],
     steps: [
       { sel: ".hello h1", title: "Selamat datang di Last Mile Routes", text: "Dashboard ini menganalisis 6.112 rute pengiriman Amazon yang nyata untuk menjawab satu pertanyaan: apa yang membuat sebuah rute berskor Tinggi? Panduan singkat ini menunjukkan letak semuanya." },
       { sel: "#cityList", title: "Pilih kota", text: "Setiap baris adalah satu kota beserta komposisi rute Tinggi, Sedang, dan Rendah. Klik sebuah kota untuk memfokuskan seluruh halaman; klik lagi untuk kembali ke semua kota." },
       { sel: "#usmap", pad: -40, title: "Stasiun pengiriman di peta", text: "Setiap titik berpendar adalah satu stasiun. Hijau berarti minimal 50% rutenya berskor Tinggi, kuning 35–50%, merah di bawah 35%. Arahkan kursor ke titik untuk melihat angkanya, atau klik untuk memfokuskan kotanya." },
       { sel: "#ov .cards", title: "Kartu ringkasan", text: "Skor rute, persentase rute Tinggi, dan volume pengiriman, untuk kota yang dipilih atau semua kota. “Lihat semua” membuka detail di balik setiap kartu." },
       { sel: '.rail [data-view="an"]', title: "Analisis lengkap", text: "Semua grafik dan temuan: pembeda rute Tinggi dan Rendah, kapasitas armada, waktu layanan, perbandingan stasiun, gap optimizer, dan risiko time window. Setiap grafik punya sorotan utama, dan resume analisa ada di paling bawah." },
-      { sel: '.rail [data-view="rt"]', title: "Rute dalam 3D", text: "Putar ulang enam contoh rute di Boston, stop demi stop, di peta 3D. Penanda melayang menunjukkan urutan yang benar-benar dilalui driver." },
+      { sel: '.rail [data-view="rt"]', title: "Rute dalam 3D", text: "Putar ulang enam contoh rute di Boston, stop demi stop, di peta 3D. Penanda melayang menunjukkan urutan yang benar-benar dilalui driver. Halaman ini punya panduan langkah demi langkah sendiri saat pertama kali dibuka." },
       { sel: ".chip.lang", title: "Bahasa Inggris atau Indonesia", text: "Ganti bahasa kapan saja. Buka lagi panduan ini lewat tombol ? di sidebar." },
     ] },
 };
-let guideStep = -1;
+let guideStep = -1, guideTour = "ov";
+const guideKey = tour => tour === "rt" ? GUIDE_KEY + "-rt" : GUIDE_KEY;
+const tourSteps = () => { const G = GUIDE[lang] || GUIDE.en; return guideTour === "rt" ? G.rtSteps : G.steps; };
 
-function guideSeen() { try { return localStorage.getItem(GUIDE_KEY) === "1"; } catch (e) { return false; } }
-function startGuide() {
-  if (view !== "ov") show("ov");
+function guideSeen(tour = "ov") { try { return localStorage.getItem(guideKey(tour)) === "1"; } catch (e) { return false; } }
+function startGuide(tour) {
+  guideTour = tour === "rt" ? "rt" : "ov";
+  if (view !== guideTour) show(guideTour);
   guideStep = 0;
   document.getElementById("guide").hidden = false;
   drawGuide();
@@ -1218,12 +1239,12 @@ function startGuide() {
 function endGuide() {
   guideStep = -1;
   document.getElementById("guide").hidden = true;
-  try { localStorage.setItem(GUIDE_KEY, "1"); } catch (e) {}
+  try { localStorage.setItem(guideKey(guideTour), "1"); } catch (e) {}
   document.getElementById("helpBtn").focus();
 }
 function drawGuide() {
   if (guideStep < 0) return;
-  const G = GUIDE[lang] || GUIDE.en, s = G.steps[guideStep], n = G.steps.length;
+  const G = GUIDE[lang] || GUIDE.en, steps = tourSteps(), s = steps[guideStep], n = steps.length;
   const target = document.querySelector(s.sel);
   const hole = document.getElementById("guideHole"), card = document.getElementById("guideCard");
   document.getElementById("guideCount").textContent = G.of(guideStep + 1, n);
@@ -1234,7 +1255,7 @@ function drawGuide() {
   document.getElementById("guideSkip").textContent = G.skip;
   document.getElementById("guideSkip").hidden = guideStep === n - 1;
   document.getElementById("guideNext").textContent = guideStep === n - 1 ? G.done : G.next;
-  document.getElementById("guideDots").innerHTML = G.steps.map((_, i) => `<i class="${i === guideStep ? "on" : ""}"></i>`).join("");
+  document.getElementById("guideDots").innerHTML = steps.map((_, i) => `<i class="${i === guideStep ? "on" : ""}"></i>`).join("");
 
   const vw = innerWidth, vh = innerHeight, pad = s.pad ?? 8;
   let r = target ? target.getBoundingClientRect() : { left: vw / 2, top: vh / 2, width: 0, height: 0 };
@@ -1253,12 +1274,12 @@ function drawGuide() {
   Object.assign(card.style, { left: x + "px", top: y + "px" });
 }
 document.getElementById("guideNext").onclick = () => {
-  const n = (GUIDE[lang] || GUIDE.en).steps.length;
+  const n = tourSteps().length;
   if (guideStep >= n - 1) endGuide(); else { guideStep++; drawGuide(); }
 };
 document.getElementById("guideBack").onclick = () => { if (guideStep > 0) { guideStep--; drawGuide(); } };
 document.getElementById("guideSkip").onclick = endGuide;
-document.getElementById("helpBtn").onclick = startGuide;
+document.getElementById("helpBtn").onclick = () => startGuide(view === "rt" ? "rt" : "ov");
 addEventListener("keydown", e => {
   if (guideStep < 0) return;
   if (e.key === "Escape") endGuide();
@@ -1317,7 +1338,7 @@ function addLayers() {
   map.addSource("shadows", { type: "geojson", data: g.shadows });
   map.addLayer({ id: "shadows", type: "circle", source: "shadows",
     paint: { "circle-color": "#000000", "circle-opacity": 0.16, "circle-blur": 0.9, "circle-pitch-alignment": "map",
-      "circle-radius": ["*", ["get", "r"], ["interpolate", ["exponential", 2], ["zoom"], 11, 2, 14, 7, 17, 40]] } });
+      "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 11, ["*", ["get", "r"], 2], 14, ["*", ["get", "r"], 7], 17, ["*", ["get", "r"], 40]] } });
   map.addLayer({ id: "pillars", type: "fill-extrusion", source: "stops",
     paint: { "fill-extrusion-color": ["get", "color"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-base": ["get", "b"],
       "fill-extrusion-opacity": 0.95, "fill-extrusion-vertical-gradient": true } });
@@ -1418,7 +1439,13 @@ function show(v) {
   document.querySelectorAll(".view").forEach(s => s.hidden = s.id !== v);
   document.querySelectorAll(".rail [data-view]").forEach(b => b.dataset.view === v ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   if (v === "an") renderAnalysis();
-  if (v === "rt") drawRoute(routeIdx);
+  if (v === "rt") {
+    drawRoute(routeIdx);
+    if (!guideSeen("rt") && guideStep < 0) {
+      const wait = () => document.querySelector(".maplibregl-ctrl-bottom-right") ? setTimeout(() => view === "rt" && guideStep < 0 && startGuide("rt"), 900) : setTimeout(wait, 200);
+      wait();
+    }
+  }
   if (v === "ov") { drawMap(); fitHello(); }
   if (location.hash.slice(1) !== v) history.replaceState(null, "", location.pathname + location.search + "#" + v);
 }
@@ -1519,7 +1546,7 @@ Promise.all([
   const cols = head.split(",");
   STATIONS = lines.map(l => Object.fromEntries(l.split(",").map((v, i) => [cols[i], isNaN(+v) ? v : +v])));
   renderOverview();
-  if (!guideSeen() && view === "ov") setTimeout(startGuide, 400);
+  if (!guideSeen() && view === "ov") setTimeout(() => startGuide("ov"), 400);
 }).catch(() => {
   document.getElementById("ovSub").textContent = "Map data failed to load. Serve this folder over http (python -m http.server).";
 });
