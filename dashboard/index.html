@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Last Mile Routes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -19,7 +21,8 @@
   --grid: #eceef1;
   --sea: #d6e2ee; --land: #ffffff; --land-line: #b9c8d8;
   --wash: rgba(250, 252, 254, .96); --glass: rgba(255, 255, 255, .8); --glass-line: rgba(255, 255, 255, 1); --shadow: 0 10px 30px rgba(40, 60, 90, .12);
-  --s-high: #2a78d6; --s-medium: #eb6834; --s-low: #1baf7a;
+  --s-high: #7b5cf6; --s-medium: #ff9443; --s-low: #22b8e0;
+  --violet-2: #a58bff; --mint: #3ccf86;
   --good: #16c06a; --warn: #f2c200; --bad: #ef3d5a;
 }
 * { box-sizing: border-box; }
@@ -299,6 +302,14 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   box-shadow: inset 3px 0 0 var(--s-high), inset 0 1px 0 var(--lg-hi), 0 4px 14px rgba(40, 70, 120, .08); }
 #an .formula { background: rgba(255, 255, 255, .6); }
 #an footer { color: var(--text-secondary); }
+
+/* ---------- Chart look after the reference: light display type, pill bars on white tracks ---------- */
+#an h1, #an h2, #an .sec-h, #an .kpi .v { font-family: "Outfit", system-ui, sans-serif; }
+#an h1 { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
+#an .sec-h { font-weight: 300; font-size: 30px; letter-spacing: -0.02em; margin-top: 44px; }
+#an .card > h2 { font-weight: 400; font-size: 20px; letter-spacing: -0.01em; }
+#an .kpi .v { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
+#an .legend i { border-radius: 50%; }
 </style>
 </head>
 <body>
@@ -698,15 +709,17 @@ function renderAnalysis() {
   const cities = D.by_city.map(c => c.city);
   charts.push(new Chart(cityScore, { type: "bar",
     data: { labels: cities, datasets: SCORES.map(s => ({ label: sc(s), data: cities.map(c => (D.score_by_city[c][s] || 0) * 100),
-      backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 }, borderRadius: 4, borderSkipped: false, barThickness: 22 })) },
+      backgroundColor: color(s), borderColor: css("--surface-1"), borderWidth: { right: 2 }, borderRadius: 99, borderSkipped: false, barThickness: 22 })) },
     options: { indexAxis: "y", scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + "%" } }, y: { stacked: true, grid: { display: false } } },
       plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } } }));
   charts.push(new Chart(daily, { type: "line",
-    data: { labels: Object.keys(D.routes_by_date), datasets: [{ label: T.routes, data: Object.values(D.routes_by_date), borderColor: color("High"), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.2 }] },
-    options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } } } }));
+    data: { labels: Object.keys(D.routes_by_date), datasets: [{ label: T.routes, data: Object.values(D.routes_by_date), borderColor: css("--mint"), borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, tension: 0,
+      fill: "origin", backgroundColor: hatch(css("--mint")) }] },
+    options: { scales: { x: { ticks: { maxTicksLimit: 6 }, grid: { display: false } }, y: { beginAtZero: true } },
+      plugins: { pinPeak: { color: css("--violet-2"), fmt: v => fmt(v) } } } }));
   const hist = (canvas, h, digits, asPct) => charts.push(new Chart(canvas, { type: "line",
     data: { labels: h.edges.slice(0, -1).map(e => asPct ? fmt(e * 100, 0) + "%" : fmt(e, digits)),
-      datasets: SCORES.map(s => ({ label: sc(s), data: (h.series[s] || []).map(v => v * 100), borderColor: color(s), borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0.3 })) },
+      datasets: SCORES.map(s => ({ label: sc(s), data: (h.series[s] || []).map(v => v * 100), borderColor: color(s), borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, tension: 0.4, fill: s === "High" ? "origin" : false, backgroundColor: hatch(color(s), .22) })) },
     options: { scales: { y: { title: { display: true, text: T.pctRoutes }, beginAtZero: true }, x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } },
       plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}% ${T.ofRoutes}` } } } } }));
   hist(histZone, D.hist.zones_revisited_pct, 2, true);
@@ -715,7 +728,7 @@ function renderAnalysis() {
   document.getElementById("modelNote").textContent = T.modelNote(D.model, pct);
   const imp = D.model.importance;
   charts.push(new Chart(importance, { type: "bar",
-    data: { labels: imp.map(i => T.labels[i.feature] || i.feature), datasets: [{ label: T.importance, data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 4, barThickness: 14 }] },
+    data: { labels: imp.map(i => T.labels[i.feature] || i.feature), datasets: [{ label: T.importance, data: imp.map(i => i.value), backgroundColor: color("High"), borderRadius: 99, barThickness: 14 }] },
     options: { indexAxis: "y", scales: { y: { grid: { display: false } } }, plugins: { tooltip: { callbacks: { label: c => `${T.importance}: ${fmt(c.raw, 3)}` } } } } }));
 
   const cols = [["city"], ["routes", 0], ["stations", 0], ["stops", 0], ["packages", 0], ["path_km", 1], ["service_h", 1], ["high_pct"]];
@@ -815,7 +828,7 @@ function renderExtra() {
   const cmp = X.hl.compare;
   charts.push(new Chart(xHl, { type: "bar",
     data: { labels: cmp.map(r => T.labels[r.feature] || r.feature),
-      datasets: [{ data: cmp.map(r => r.effect), backgroundColor: cmp.map(r => r.effect >= 0 ? hi : med), borderRadius: 4, barThickness: 14 }] },
+      datasets: [{ data: cmp.map(r => r.effect), backgroundColor: cmp.map(r => r.effect >= 0 ? hi : med), borderRadius: 99, barThickness: 14 }] },
     options: { indexAxis: "y", scales: { x: { title: { display: true, text: T.xHlAxis } }, y: { grid: { display: false } } },
       plugins: { tooltip: { callbacks: { label: c => {
         const r = cmp[c.dataIndex], f = r.feature.endsWith("pct") ? v => pct(v) : v => fmt(v, 2);
@@ -824,7 +837,7 @@ function renderExtra() {
   const hr = X.hl.by_hour;
   charts.push(new Chart(xHour, { type: "bar",
     data: { labels: hr.map(r => String(r.departure_hour_utc).padStart(2, "0") + ":00"),
-      datasets: [{ data: hr.map(r => r.high_pct * 100), backgroundColor: hi, borderRadius: 4, maxBarThickness: 32 }] },
+      datasets: [{ data: hr.map(r => r.high_pct * 100), backgroundColor: hi, borderRadius: 99, maxBarThickness: 32 }] },
     options: { scales: { y: { beginAtZero: true, ticks: { callback: v => v + "%" } }, x: { grid: { display: false } } },
       plugins: { tooltip: { callbacks: { label: c => [`${fmt(c.raw, 1)}% ${sc("High")}`, `${fmt(hr[c.dataIndex].routes)} ${T.tipRoutes}`] } } } } }));
 
@@ -837,14 +850,14 @@ function renderExtra() {
   const bins = cap.hist.counts.slice(0, last + 1);
   charts.push(new Chart(xCapHist, { type: "bar",
     data: { labels: bins.map((_, i) => pct(e[i], 0)),
-      datasets: [{ data: bins, backgroundColor: bins.map((_, i) => e[i] < cap.low ? bandCol[0] : e[i] >= cap.high ? bandCol[2] : bandCol[1]), borderRadius: 3, categoryPercentage: 0.95, barPercentage: 0.95 }] },
+      datasets: [{ data: bins, backgroundColor: bins.map((_, i) => e[i] < cap.low ? bandCol[0] : e[i] >= cap.high ? bandCol[2] : bandCol[1]), borderRadius: 99, categoryPercentage: 0.95, barPercentage: 0.95 }] },
     options: { scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } },
       plugins: { tooltip: { callbacks: { title: c => `${pct(e[c[0].dataIndex], 0)}–${pct(e[c[0].dataIndex + 1], 0)}`, label: c => `${fmt(c.raw)} ${T.tipRoutes}` } } } } }));
   const cs = cap.by_station;
   charts.push(new Chart(xCapSt, { type: "bar",
     data: { labels: cs.map(s => `${s.station_code} (${T.xMedian} ${pct(s.median_util, 0)})`),
-      datasets: [{ label: T.xUnder, data: cs.map(s => s.under_pct * 100), backgroundColor: bandCol[0], borderRadius: 3, barThickness: 12 },
-                 { label: T.xOver, data: cs.map(s => s.over_pct * 100), backgroundColor: bandCol[2], borderRadius: 3, barThickness: 12 }] },
+      datasets: [{ label: T.xUnder, data: cs.map(s => s.under_pct * 100), backgroundColor: bandCol[0], borderRadius: 99, barThickness: 12 },
+                 { label: T.xOver, data: cs.map(s => s.over_pct * 100), backgroundColor: bandCol[2], borderRadius: 99, barThickness: 12 }] },
     options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } },
       plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
         tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 1)}%` } } } } }));
@@ -855,7 +868,7 @@ function renderExtra() {
   charts.push(new Chart(xSvc, { type: "bar",
     data: { labels: sv.by_n.map(r => r.n_pkgs === 10 ? "10+" : String(r.n_pkgs)),
       datasets: [{ type: "line", label: T.xSvcMedian, data: sv.by_n.map(r => r.median_s), borderColor: hi, backgroundColor: hi, borderWidth: 2, pointRadius: 4, tension: 0 },
-                 { label: T.xSvcIqr, data: sv.by_n.map(r => [r.p25_s, r.p75_s]), backgroundColor: hi + "33", borderRadius: 4, barPercentage: 0.6 }] },
+                 { label: T.xSvcIqr, data: sv.by_n.map(r => [r.p25_s, r.p75_s]), backgroundColor: hi + "33", borderRadius: 99, barPercentage: 0.6 }] },
     options: { scales: { y: { beginAtZero: true, title: { display: true, text: T.xSvcAxis } }, x: { grid: { display: false }, title: { display: true, text: T.xSvcPkgs } } },
       plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
         tooltip: { callbacks: { label: c => Array.isArray(c.raw) ? `${T.xSvcIqr}: ${fmt(c.raw[0])}–${fmt(c.raw[1])} s` : `${T.xSvcMedian}: ${fmt(c.raw)} s` } } } } }));
@@ -1071,12 +1084,12 @@ function renderTravel() {
     .map((v, i) => `<div class="card kpi"><div class="v">${v}</div><div class="l">${T.tGapKpi[i]}</div></div>`).join("");
   const e = G.hist.edges, cnt = G.hist.counts;
   charts.push(new Chart(tGapHist, { type: "bar",
-    data: { labels: cnt.map((_, i) => pct(e[i], 0)), datasets: [{ data: cnt, backgroundColor: color("High"), borderRadius: 3, categoryPercentage: .95, barPercentage: .95 }] },
+    data: { labels: cnt.map((_, i) => pct(e[i], 0)), datasets: [{ data: cnt, backgroundColor: color("High"), borderRadius: 99, categoryPercentage: .95, barPercentage: .95 }] },
     options: { scales: { x: { grid: { display: false }, title: { display: true, text: T.tGapAxis }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } },
       plugins: { tooltip: { callbacks: { title: c => `${pct(e[c[0].dataIndex], 1)}–${pct(e[c[0].dataIndex + 1], 1)}`, label: c => `${fmt(c.raw)} ${T.tRoutes}` } } } } }));
   const gs = G.by_station;
   charts.push(new Chart(tGapSt, { type: "bar",
-    data: { labels: gs.map(s => s.station_code), datasets: [{ data: gs.map(s => s.gap_pct * 100), backgroundColor: gs.map((s, i) => i < 3 ? css("--s-medium") : color("High")), borderRadius: 3, barThickness: 12 }] },
+    data: { labels: gs.map(s => s.station_code), datasets: [{ data: gs.map(s => s.gap_pct * 100), backgroundColor: gs.map((s, i) => i < 3 ? css("--s-medium") : color("High")), borderRadius: 99, barThickness: 12 }] },
     options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false } } },
       plugins: { tooltip: { callbacks: { label: c => { const s = gs[c.dataIndex]; return [`${s.city}`, `${fmt(c.raw, 1)}% · ${fmt(s.gap_min, 1)} min`, `${fmt(s.routes)} ${T.tRoutes}`]; } } } } } }));
   document.getElementById("tZoneNote").textContent = T.tZoneNote(fmt(G.zone_count), 20, pct(G.split.intra_s / G.split.total_s, 0));
@@ -1090,14 +1103,14 @@ function renderTravel() {
   document.getElementById("tSlackLegend").innerHTML = T.tSlackBands.map((b, i) => `<span><i style="background:${band[i]}"></i>${b}</span>`).join("");
   const se = W.slack_hist.edges, sc_ = W.slack_hist.counts;
   charts.push(new Chart(tSlack, { type: "bar",
-    data: { labels: sc_.map((_, i) => fmt(se[i])), datasets: [{ data: sc_, backgroundColor: sc_.map((_, i) => se[i] < 0 ? band[0] : se[i] < W.risk_min ? band[1] : band[2]), borderRadius: 3, categoryPercentage: .95, barPercentage: .95 }] },
+    data: { labels: sc_.map((_, i) => fmt(se[i])), datasets: [{ data: sc_, backgroundColor: sc_.map((_, i) => se[i] < 0 ? band[0] : se[i] < W.risk_min ? band[1] : band[2]), borderRadius: 99, categoryPercentage: .95, barPercentage: .95 }] },
     options: { scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { beginAtZero: true, type: "logarithmic" } },
       plugins: { tooltip: { callbacks: { title: c => `${fmt(se[c[0].dataIndex])} … ${fmt(se[c[0].dataIndex + 1])} min`, label: c => `${fmt(c.raw)} ${T.tPkgs}` } } } } }));
   const ts = W.by_station;
   charts.push(new Chart(tTwSt, { type: "bar",
     data: { labels: ts.map(s => s.station_code), datasets: [
-      { label: T.tDriver, data: ts.map(s => s.late_pct * 100), backgroundColor: color("High"), borderRadius: 3, barThickness: 9 },
-      { label: T.tOpt, data: ts.map(s => s.late_opt_pct * 100), backgroundColor: css("--s-medium"), borderRadius: 3, barThickness: 9 }] },
+      { label: T.tDriver, data: ts.map(s => s.late_pct * 100), backgroundColor: color("High"), borderRadius: 99, barThickness: 9 },
+      { label: T.tOpt, data: ts.map(s => s.late_opt_pct * 100), backgroundColor: css("--s-medium"), borderRadius: 99, barThickness: 9 }] },
     options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false } } },
       plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
         tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 2)}% (${fmt(ts[c.dataIndex].packages)} ${T.tPkgs})` } } } } }));
@@ -1292,11 +1305,60 @@ document.querySelectorAll(".chip.lang button[data-lang]").forEach(b => b.onclick
 
 addEventListener("resize", () => { if (view === "ov") drawMap(); });
 
-Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.font.family = '"Outfit", system-ui, sans-serif';
+Chart.defaults.font.size = 11;
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.maintainAspectRatio = false;
 Chart.defaults.plugins.tooltip.mode = "index";
 Chart.defaults.plugins.tooltip.intersect = false;
+Object.assign(Chart.defaults.plugins.tooltip, { backgroundColor: "rgba(255,255,255,.95)", titleColor: "#101114", bodyColor: "#3d4150",
+  borderColor: "rgba(120,130,170,.25)", borderWidth: 1, cornerRadius: 12, padding: 10, boxPadding: 4, usePointStyle: true });
+Chart.defaults.scale.grid.color = "rgba(110,120,160,.13)";
+Chart.defaults.scale.grid.drawTicks = false;
+Chart.defaults.scale.border = { display: false, dash: [3, 4] };
+Chart.defaults.scale.ticks.padding = 8;
+Chart.defaults.elements.bar.borderSkipped = false;
+Chart.defaults.elements.bar.borderRadius = 99;
+
+// Vertical-line hatch used as an area fill.
+function hatch(colorHex, alpha = .35) {
+  const c = document.createElement("canvas"); c.width = 5; c.height = 8;
+  const g = c.getContext("2d"); g.globalAlpha = alpha; g.fillStyle = colorHex; g.fillRect(0, 0, 1.2, 8);
+  return g.createPattern(c, "repeat");
+}
+// White rounded "track" behind every bar, so bars read as pills in a slot.
+Chart.register({ id: "pillTrack", beforeDatasetsDraw(ch) {
+  const a = ch.chartArea, hz = ch.options.indexAxis === "y", g = ch.ctx;
+  g.save(); g.fillStyle = "rgba(255,255,255,.82)"; g.shadowColor = "rgba(70,80,140,.10)"; g.shadowBlur = 8; g.shadowOffsetY = 2;
+  ch.data.datasets.forEach((d, i) => {
+    const m = ch.getDatasetMeta(i);
+    if (m.type !== "bar" || m.hidden || ch.options.scales?.x?.stacked) return;
+    m.data.forEach(b => {
+      const r = b.getProps(["x", "y", "width", "height"], true);
+      g.beginPath();
+      if (hz) g.roundRect(a.left, r.y - r.height / 2, a.right - a.left, r.height, r.height / 2);
+      else g.roundRect(r.x - r.width / 2, a.top, r.width, a.bottom - a.top, r.width / 2);
+      g.fill();
+    });
+  });
+  g.restore();
+} });
+// Pin with a value bubble on the highest point of the first line.
+Chart.register({ id: "pinPeak", afterDatasetsDraw(ch, _, o) {
+  if (!o || !o.fmt) return;
+  const m = ch.getDatasetMeta(0), vals = ch.data.datasets[0].data;
+  const i = vals.indexOf(Math.max(...vals)), pt = m.data[i];
+  if (!pt) return;
+  const g = ch.ctx, a = ch.chartArea, label = `${ch.data.labels[i]}  ·  ${o.fmt(vals[i])}`;
+  g.save();
+  g.strokeStyle = o.color; g.lineWidth = 1.5; g.beginPath(); g.moveTo(pt.x, pt.y); g.lineTo(pt.x, a.bottom); g.stroke();
+  g.fillStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.arc(pt.x, pt.y, 5, 0, 7); g.fill(); g.stroke();
+  g.font = '500 11px "Outfit", sans-serif';
+  const w = g.measureText(label).width + 18, h = 24, x = Math.min(a.right - w, Math.max(a.left, pt.x - w / 2)), y = Math.max(0, pt.y - h - 12);
+  g.shadowColor = "rgba(60,70,120,.18)"; g.shadowBlur = 10; g.fillStyle = "#fff"; g.beginPath(); g.roundRect(x, y, w, h, 8); g.fill();
+  g.shadowBlur = 0; g.fillStyle = "#101114"; g.textBaseline = "middle"; g.fillText(label, x + 9, y + h / 2);
+  g.restore();
+} });
 
 let saved = null;
 try { saved = localStorage.getItem("lm-lang"); } catch (e) {}
