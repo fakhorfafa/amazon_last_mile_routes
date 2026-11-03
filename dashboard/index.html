@@ -320,6 +320,30 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 #an .card > h2 { font-weight: 400; font-size: 20px; letter-spacing: -0.01em; }
 #an .kpi .v { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
 #an .legend i { border-radius: 50%; }
+
+/* ---------- First-visit guide ---------- */
+#guide { position: fixed; inset: 0; z-index: 50; }
+#guideHole { position: fixed; border-radius: 20px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(18, 22, 40, .48), 0 0 0 2px rgba(255, 255, 255, .9), 0 0 28px rgba(123, 92, 246, .55);
+  transition: left .35s, top .35s, width .35s, height .35s; }
+#guideCard { position: fixed; width: min(340px, calc(100vw - 24px)); padding: 16px 18px 14px; border-radius: 22px; z-index: 2;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .78));
+  backdrop-filter: var(--lg-blur); -webkit-backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-drop), inset 0 1px 0 var(--lg-hi); transition: left .35s, top .35s; }
+#guideCard h3 { font-size: 18px; font-weight: 500; margin: 6px 0 6px; letter-spacing: -0.01em; }
+#guideCard p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+.g-top { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+#guideDots { display: flex; gap: 4px; }
+#guideDots i { width: 6px; height: 6px; border-radius: 3px; background: rgba(120, 130, 170, .3); transition: width .25s; }
+#guideDots i.on { width: 16px; background: var(--s-high); }
+.g-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.g-spacer { flex: 1; }
+.g-btn { font: inherit; font-size: 13px; height: 32px; padding: 0 14px; border-radius: 16px; border: 0; cursor: pointer;
+  background: rgba(120, 130, 170, .14); color: var(--text-primary); }
+.g-btn.primary { background: var(--s-high); color: #fff; box-shadow: 0 4px 12px rgba(123, 92, 246, .35); }
+.g-link { font: inherit; font-size: 12px; border: 0; background: none; color: var(--text-muted); cursor: pointer; padding: 0; }
+.g-btn:focus-visible, .g-link:focus-visible { outline: 2px solid var(--s-high); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { #guideHole, #guideCard { transition: none; } }
 </style>
 </head>
 <body>
@@ -338,6 +362,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     <button type="button" data-view="an" data-i18n-aria="navAnalysis"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
     <button type="button" data-view="rt" data-i18n-aria="navRoutes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></button>
     <div class="spacer"></div>
+    <button type="button" id="helpBtn" data-i18n-aria="guideHelp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8"/><path d="M12 17.2v.1"/></svg></button>
   </nav>
 
   <div class="stage">
@@ -477,6 +502,21 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </div>
 </div>
 
+<div id="guide" hidden>
+  <div id="guideHole" aria-hidden="true"></div>
+  <div id="guideCard" role="dialog" aria-modal="true" aria-labelledby="guideTitle" aria-describedby="guideText">
+    <div class="g-top"><span id="guideCount"></span><div id="guideDots" aria-hidden="true"></div></div>
+    <h3 id="guideTitle"></h3>
+    <p id="guideText"></p>
+    <div class="g-actions">
+      <button type="button" class="g-link" id="guideSkip"></button>
+      <span class="g-spacer"></span>
+      <button type="button" class="g-btn" id="guideBack"></button>
+      <button type="button" class="g-btn primary" id="guideNext"></button>
+    </div>
+  </div>
+</div>
+
 <script>
 const D = window.ALMRRC;
 const SCORES = ["High", "Medium", "Low"];
@@ -489,7 +529,7 @@ const status = v => v >= GOOD ? "good" : v >= WARN ? "warn" : "bad";
 const I18N = {
   en: {
     locale: "en-US", pageTitle: "Last Mile Routes",
-    navOverview: "Overview", navAnalysis: "Analysis", navRoutes: "Sample routes",
+    guideHelp: "Show the guide", navOverview: "Overview", navAnalysis: "Analysis", navRoutes: "Sample routes",
     mapAria: "Map of delivery stations in the United States",
     hello: "Hi there 👋",
     ovSub: (k, f) => `${f(k.routes)} Amazon delivery routes, ${k.date_min} to ${k.date_max}. Pick a city to focus the cards.`,
@@ -542,7 +582,7 @@ const I18N = {
   },
   id: {
     locale: "id-ID", pageTitle: "Rute Last Mile",
-    navOverview: "Ringkasan", navAnalysis: "Analisis", navRoutes: "Contoh rute",
+    guideHelp: "Tampilkan panduan", navOverview: "Ringkasan", navAnalysis: "Analisis", navRoutes: "Contoh rute",
     mapAria: "Peta stasiun pengiriman di Amerika Serikat",
     hello: "Halo 👋",
     ovSub: (k, f) => `${f(k.routes)} rute pengiriman Amazon, ${k.date_min} sampai ${k.date_max}. Pilih kota untuk memfokuskan kartu.`,
@@ -1141,6 +1181,92 @@ function renderTravel() {
   if (items.length) items[items.length - 1].innerHTML = T.sumT(G, W, fmt, pct);
 }
 
+/* ---------- First-visit guide ---------- */
+const GUIDE_KEY = "lm-guide-done";
+const GUIDE = {
+  en: { next: "Next", back: "Back", skip: "Skip tour", done: "Start exploring", of: (i, n) => `${i} of ${n}`, help: "Show the guide",
+    steps: [
+      { sel: ".hello h1", title: "Welcome to Last Mile Routes", text: "This dashboard looks at 6,112 real Amazon delivery routes and asks one question: what makes a route score High? This short tour shows where everything is." },
+      { sel: "#cityList", title: "Pick a city", text: "Each row is a city with its mix of High, Medium and Low routes. Click a city to focus the whole page on it; click it again to see all cities." },
+      { sel: "#usmap", pad: -40, title: "Delivery stations on the map", text: "Each glowing dot is a delivery station. Green means at least 50% of its routes score High, yellow 35–50%, red under 35%. Hover a dot for its numbers, or click it to focus its city." },
+      { sel: "#ov .cards", title: "Summary cards", text: "Route scores, the share of High routes and delivery volume, for the city you picked or for all cities. “See all” opens the detail behind each card." },
+      { sel: '.rail [data-view="an"]', title: "Full analysis", text: "Every chart and finding: what separates High from Low routes, fleet capacity, service time, station benchmarks, the optimizer gap and time-window risk. Each chart has a key highlight, and a summary sits at the bottom." },
+      { sel: '.rail [data-view="rt"]', title: "Routes in 3D", text: "Replay six sample Boston routes stop by stop on a 3D map. Floating markers show the order the driver actually took." },
+      { sel: ".chip.lang", title: "English or Indonesian", text: "Switch the language at any time. Reopen this guide with the ? button in the sidebar." },
+    ] },
+  id: { next: "Lanjut", back: "Kembali", skip: "Lewati panduan", done: "Mulai menjelajah", of: (i, n) => `${i} dari ${n}`, help: "Tampilkan panduan",
+    steps: [
+      { sel: ".hello h1", title: "Selamat datang di Last Mile Routes", text: "Dashboard ini menganalisis 6.112 rute pengiriman Amazon yang nyata untuk menjawab satu pertanyaan: apa yang membuat sebuah rute berskor Tinggi? Panduan singkat ini menunjukkan letak semuanya." },
+      { sel: "#cityList", title: "Pilih kota", text: "Setiap baris adalah satu kota beserta komposisi rute Tinggi, Sedang, dan Rendah. Klik sebuah kota untuk memfokuskan seluruh halaman; klik lagi untuk kembali ke semua kota." },
+      { sel: "#usmap", pad: -40, title: "Stasiun pengiriman di peta", text: "Setiap titik berpendar adalah satu stasiun. Hijau berarti minimal 50% rutenya berskor Tinggi, kuning 35–50%, merah di bawah 35%. Arahkan kursor ke titik untuk melihat angkanya, atau klik untuk memfokuskan kotanya." },
+      { sel: "#ov .cards", title: "Kartu ringkasan", text: "Skor rute, persentase rute Tinggi, dan volume pengiriman, untuk kota yang dipilih atau semua kota. “Lihat semua” membuka detail di balik setiap kartu." },
+      { sel: '.rail [data-view="an"]', title: "Analisis lengkap", text: "Semua grafik dan temuan: pembeda rute Tinggi dan Rendah, kapasitas armada, waktu layanan, perbandingan stasiun, gap optimizer, dan risiko time window. Setiap grafik punya sorotan utama, dan resume analisa ada di paling bawah." },
+      { sel: '.rail [data-view="rt"]', title: "Rute dalam 3D", text: "Putar ulang enam contoh rute di Boston, stop demi stop, di peta 3D. Penanda melayang menunjukkan urutan yang benar-benar dilalui driver." },
+      { sel: ".chip.lang", title: "Bahasa Inggris atau Indonesia", text: "Ganti bahasa kapan saja. Buka lagi panduan ini lewat tombol ? di sidebar." },
+    ] },
+};
+let guideStep = -1;
+
+function guideSeen() { try { return localStorage.getItem(GUIDE_KEY) === "1"; } catch (e) { return false; } }
+function startGuide() {
+  if (view !== "ov") show("ov");
+  guideStep = 0;
+  document.getElementById("guide").hidden = false;
+  drawGuide();
+  document.getElementById("guideNext").focus();
+}
+function endGuide() {
+  guideStep = -1;
+  document.getElementById("guide").hidden = true;
+  try { localStorage.setItem(GUIDE_KEY, "1"); } catch (e) {}
+  document.getElementById("helpBtn").focus();
+}
+function drawGuide() {
+  if (guideStep < 0) return;
+  const G = GUIDE[lang] || GUIDE.en, s = G.steps[guideStep], n = G.steps.length;
+  const target = document.querySelector(s.sel);
+  const hole = document.getElementById("guideHole"), card = document.getElementById("guideCard");
+  document.getElementById("guideCount").textContent = G.of(guideStep + 1, n);
+  document.getElementById("guideTitle").textContent = s.title;
+  document.getElementById("guideText").textContent = s.text;
+  document.getElementById("guideBack").textContent = G.back;
+  document.getElementById("guideBack").hidden = guideStep === 0;
+  document.getElementById("guideSkip").textContent = G.skip;
+  document.getElementById("guideSkip").hidden = guideStep === n - 1;
+  document.getElementById("guideNext").textContent = guideStep === n - 1 ? G.done : G.next;
+  document.getElementById("guideDots").innerHTML = G.steps.map((_, i) => `<i class="${i === guideStep ? "on" : ""}"></i>`).join("");
+
+  const vw = innerWidth, vh = innerHeight, pad = s.pad ?? 8;
+  let r = target ? target.getBoundingClientRect() : { left: vw / 2, top: vh / 2, width: 0, height: 0 };
+  if (target && (r.width === 0 || r.bottom < 0 || r.top > vh)) { target.scrollIntoView({ block: "center" }); r = target.getBoundingClientRect(); }
+  const box = { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
+  Object.assign(hole.style, { left: box.x + "px", top: box.y + "px", width: box.w + "px", height: box.h + "px" });
+
+  // Place the card beside the highlight: right, then below, then above, then left, clamped to the viewport.
+  const cw = card.offsetWidth, ch = card.offsetHeight, gap = 16, m = 12;
+  const options = [
+    [box.x + box.w + gap, box.y], [box.x, box.y + box.h + gap], [box.x, box.y - ch - gap], [box.x - cw - gap, box.y],
+  ];
+  const fits = ([x, y]) => x >= m && y >= m && x + cw <= vw - m && y + ch <= vh - m;
+  let [x, y] = options.find(fits) || [(vw - cw) / 2, vh - ch - m];
+  x = Math.min(Math.max(m, x), vw - cw - m); y = Math.min(Math.max(m, y), vh - ch - m);
+  Object.assign(card.style, { left: x + "px", top: y + "px" });
+}
+document.getElementById("guideNext").onclick = () => {
+  const n = (GUIDE[lang] || GUIDE.en).steps.length;
+  if (guideStep >= n - 1) endGuide(); else { guideStep++; drawGuide(); }
+};
+document.getElementById("guideBack").onclick = () => { if (guideStep > 0) { guideStep--; drawGuide(); } };
+document.getElementById("guideSkip").onclick = endGuide;
+document.getElementById("helpBtn").onclick = startGuide;
+addEventListener("keydown", e => {
+  if (guideStep < 0) return;
+  if (e.key === "Escape") endGuide();
+  else if (e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); document.getElementById("guideNext").click(); }
+  else if (e.key === "ArrowLeft") document.getElementById("guideBack").click();
+});
+addEventListener("resize", drawGuide);
+
 /* ---------- Routes (3D) ---------- */
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 let map = null, pitch = 60, play = null;
@@ -1307,6 +1433,7 @@ function render() {
   document.title = T.pageTitle;
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = T[el.dataset.i18n]; });
   document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", T[el.dataset.i18nAria]));
+  if (typeof drawGuide === "function") drawGuide();
   document.querySelectorAll(".chip.lang button[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
   renderOverview(); renderRoutes();
   if (view === "an") renderAnalysis();
@@ -1392,6 +1519,7 @@ Promise.all([
   const cols = head.split(",");
   STATIONS = lines.map(l => Object.fromEntries(l.split(",").map((v, i) => [cols[i], isNaN(+v) ? v : +v])));
   renderOverview();
+  if (!guideSeen() && view === "ov") setTimeout(startGuide, 400);
 }).catch(() => {
   document.getElementById("ovSub").textContent = "Map data failed to load. Serve this folder over http (python -m http.server).";
 });
