@@ -8,7 +8,15 @@ how it was driven.
 
 **Question:** Which features of the stop sequence a driver actually drove separate High-quality routes from the rest?
 
-![dashboard](docs/dashboard.png)
+![Overview: stations on a US map with glass summary cards](docs/overview.png)
+
+The dashboard has three views, in English and Indonesian, with a guided tour on first visit:
+
+- **Overview:** stations on a US map coloured by share of High routes, a city list, and summary cards that follow the selected city.
+- **Analysis:** every chart, each with a computed key highlight, and an analysis summary at the bottom.
+- **Sample routes:** six Boston routes replayed stop by stop on a 3D map.
+
+![Analysis view](docs/analysis.png)
 
 ## Results
 
@@ -19,14 +27,18 @@ The analysis covers 6,112 routes, 898,415 stops and 1,457,175 packages across 17
 | Routes | 2,718 | 3,292 | 102 |
 | Avg stops | 139.6 | 153.0 | 150.3 |
 | Avg straight-line path (km) | 60.0 | 67.6 | 65.5 |
-| Path ÷ nearest-neighbour tour | 1.064 | 1.081 | 1.073 |
+| Packages with a time window | 8.2% | 8.0% | 2.7% |
+| Driver drive time vs optimizer (median) | +11.7% | +11.5% | +11.3% |
+| Time-window packages estimated late | 0.8% | 1.2% | 7.6% |
 | % of zones revisited | 3.9% | 4.0% | 3.2% |
 
-1. **High routes are smaller routes.** They have about 13 fewer stops and about 8 km less driving than Medium routes, so workload is as much a part of "quality" as how the route is driven.
-2. **High routes are driven slightly closer to a nearest-neighbour tour**, but the gap is small (1.064 vs 1.081).
-3. **Zone discipline does not separate the quality levels.** Drivers at every level revisit only about 4% of their zones, which contradicted my initial hypothesis.
-4. **Quality varies by city.** 50% of Seattle routes are High, compared with 33% in Boston.
-5. A random forest that separates High from not-High reaches a **5-fold cross-validated ROC AUC of 0.69**. Path length, stop count and path ÷ NN are its top features. Route quality is therefore only partly explained by the observable sequence.
+1. **Late deliveries separate Low routes.** 7.6% of time-window packages on Low routes are estimated to arrive late, against 0.8% on High routes. This is the clearest difference found.
+2. **The optimizer gap does not explain quality.** Drivers drive a median 11.6% (about 20 minutes) longer than a local-search optimizer at every score level. Driving the optimizer's faster order would make 3.3% of time-window packages late instead of 1.1%, so part of the gap is the price of keeping time windows. 56% of the gap is inside planning zones; the rest comes from the order of zones.
+3. **Delivery density goes with quality.** Across stations, packages per stop and the share of High routes correlate at r = 0.90. High routes carry the same number of packages as Medium routes over about 13 fewer stops.
+4. **Driving order is not the problem.** Every score level stays within about 8% of a nearest-neighbour path and revisits only about 4% of its zones, which contradicted my first hypothesis.
+5. **Capacity is mostly fine.** The median van leaves 74% full; 10% of routes are over 95% full, mostly at DCH2 and DLA4.
+6. **Service time is mostly package count:** about 39 s per stop plus 37 s per package (R² 0.28 on Amazon's planned times).
+7. **Quality is only partly predictable.** A random forest reaches a 5-fold cross-validated ROC AUC of 0.69 for High vs the rest and 0.77 for High vs Low.
 
 ## Pipeline
 
@@ -71,8 +83,10 @@ cd dashboard && python -m http.server 8765   # open http://127.0.0.1:8765/
 
 ## Caveats
 
-- Amazon obfuscated and perturbed the coordinates, so distances are straight-line approximations, not road distances.
-- The labels are imbalanced: only 102 routes are Low. The model therefore predicts **High vs. not High**.
+- Amazon obfuscated and perturbed the coordinates, so the km figures are straight-line approximations. Drive times come from Amazon's travel-time matrix.
+- The optimizer is nearest-neighbour + 2-opt + Or-opt, seeded with the driver's order. OR-Tools could not be installed, so the gap to a proven optimum may be somewhat larger.
+- Arrival times are estimated from departure time, drive time and planned service time, not from delivery scans.
+- The labels are imbalanced: only 102 routes are Low. The main model therefore predicts **High vs. not High**.
 - Amazon derived its quality labels partly from factors that are not in the data, such as driver experience and customer feedback, so a modest AUC is expected.
 - Only the training split is used. The evaluation split contains only High routes, so it cannot be used to compare quality levels.
 
