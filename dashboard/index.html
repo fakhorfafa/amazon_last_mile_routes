@@ -28,7 +28,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--frame); color: var(--text-primary);
-  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  font: 14px/1.5 "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif; }
 .app { display: flex; height: 100%; padding: 12px; gap: 0; }
 .shell { flex: 1; display: flex; min-width: 0; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); background: var(--bg); }
 
@@ -304,7 +304,10 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 #an footer { color: var(--text-secondary); }
 
 /* ---------- Chart look after the reference: light display type, pill bars on white tracks ---------- */
-#an h1, #an h2, #an .sec-h, #an .kpi .v { font-family: "Outfit", system-ui, sans-serif; }
+/* One typeface everywhere: Outfit, including the 3D map's own controls and popups. */
+.maplibregl-map, .maplibregl-popup-content, .maplibregl-ctrl-attrib { font-family: "Outfit", system-ui, sans-serif; }
+.hello h1 { font-weight: 400; }
+.gcard h3 { font-weight: 500; }
 #an h1 { font-weight: 400; font-size: 30px; letter-spacing: -0.02em; }
 #an .sec-h { font-weight: 300; font-size: 30px; letter-spacing: -0.02em; margin-top: 44px; }
 #an .card > h2 { font-weight: 400; font-size: 20px; letter-spacing: -0.01em; }
@@ -1033,7 +1036,7 @@ Object.assign(I18N.en, {
   tTwKpi: ["packages with a time window", "estimated late", "at risk (within 15 min)", "late if the optimizer's order were driven"],
   tSlackTitle: "Minutes left before the window closes",
   tSlackNote: m => `Negative means the package arrives after its window. Packages within ${m} minutes of the end are at risk.`,
-  tSlackBands: ["Late", "At risk", "Safe"], tPkgs: "packages",
+  tSlackBands: ["Late", "At risk", "Safe"], twPkgs: "packages",
   tTwStTitle: "Late packages by station: driver vs optimizer",
   tTwStNote: "Share of time-window packages estimated late, with the driver's order and with the faster optimizer order.",
   tDriver: "Driver", tOpt: "Optimizer",
@@ -1063,7 +1066,7 @@ Object.assign(I18N.id, {
   tTwKpi: ["paket dengan time window", "estimasi telat", "berisiko (≤ 15 menit)", "telat jika urutan optimizer yang dipakai"],
   tSlackTitle: "Sisa menit sebelum time window ditutup",
   tSlackNote: m => `Nilai negatif berarti paket tiba setelah jendelanya ditutup. Paket yang tiba ${m} menit atau kurang sebelum batas akhir dianggap berisiko.`,
-  tSlackBands: ["Telat", "Berisiko", "Aman"], tPkgs: "paket",
+  tSlackBands: ["Telat", "Berisiko", "Aman"], twPkgs: "paket",
   tTwStTitle: "Paket telat per stasiun: driver vs optimizer",
   tTwStNote: "Persentase paket ber-time window yang diperkirakan telat, dengan urutan driver dan dengan urutan optimizer yang lebih cepat.",
   tDriver: "Driver", tOpt: "Optimizer",
@@ -1105,7 +1108,7 @@ function renderTravel() {
   charts.push(new Chart(tSlack, { type: "bar",
     data: { labels: sc_.map((_, i) => fmt(se[i])), datasets: [{ data: sc_, backgroundColor: sc_.map((_, i) => se[i] < 0 ? band[0] : se[i] < W.risk_min ? band[1] : band[2]), borderRadius: 99, categoryPercentage: .95, barPercentage: .95 }] },
     options: { scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { beginAtZero: true, type: "logarithmic" } },
-      plugins: { tooltip: { callbacks: { title: c => `${fmt(se[c[0].dataIndex])} … ${fmt(se[c[0].dataIndex + 1])} min`, label: c => `${fmt(c.raw)} ${T.tPkgs}` } } } } }));
+      plugins: { tooltip: { callbacks: { title: c => `${fmt(se[c[0].dataIndex])} … ${fmt(se[c[0].dataIndex + 1])} min`, label: c => `${fmt(c.raw)} ${T.twPkgs}` } } } } }));
   const ts = W.by_station;
   charts.push(new Chart(tTwSt, { type: "bar",
     data: { labels: ts.map(s => s.station_code), datasets: [
@@ -1113,7 +1116,7 @@ function renderTravel() {
       { label: T.tOpt, data: ts.map(s => s.late_opt_pct * 100), backgroundColor: css("--s-medium"), borderRadius: 99, barThickness: 9 }] },
     options: { indexAxis: "y", scales: { x: { ticks: { callback: v => v + "%" } }, y: { grid: { display: false } } },
       plugins: { legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10 } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 2)}% (${fmt(ts[c.dataIndex].packages)} ${T.tPkgs})` } } } } }));
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.raw, 2)}% (${fmt(ts[c.dataIndex].packages)} ${T.twPkgs})` } } } } }));
 
   document.querySelectorAll("[data-hl^='t']").forEach(el => {
     const fn = T.hlT[el.dataset.hl];
