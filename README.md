@@ -38,10 +38,12 @@ data/raw/*.json  ──build_tables.py──▶  data/processed/{routes,stops,pa
 
 | Step | What it does |
 |---|---|
-| `scripts/download.sh` | Downloads the training inputs over HTTPS. No AWS CLI is needed. `travel_times.json` (1.8 GB) is skipped. |
+| `scripts/download.sh` | Downloads the training inputs over HTTPS. No AWS CLI is needed. `travel_times.json` (1.8 GB) is fetched only with `--with-travel-times`. |
 | `scripts/build_tables.py` | Flattens the nested JSON into tidy route, stop and package tables. |
 | `scripts/analyze.py` | Engineers route features, trains a cross-validated random forest, and exports dashboard data. |
-| `dashboard/index.html` | A static dashboard built with Chart.js and Leaflet. Open it in any browser. |
+| `scripts/analyze_extra.py` | High vs Low comparison, fleet capacity, service-time model and station benchmark. |
+| `scripts/analyze_travel.py` | Streams `travel_times.json` to compare driver and optimizer drive time and estimate time-window risk. |
+| `dashboard/index.html` | A static dashboard built with Chart.js and MapLibre GL. Serve the folder over HTTP to open it. |
 
 ### Engineered features
 
@@ -59,10 +61,12 @@ data/raw/*.json  ──build_tables.py──▶  data/processed/{routes,stops,pa
 Requires Python 3.9+ with `pandas`, `numpy` and `scikit-learn`.
 
 ```bash
-sh scripts/download.sh          # ~465 MB
-python scripts/build_tables.py  # ~1 min
-python scripts/analyze.py       # ~2 min
-# open dashboard/index.html
+sh scripts/download.sh --with-travel-times   # ~2.3 GB
+python scripts/build_tables.py               # ~1 min
+python scripts/analyze.py                    # ~2 min
+python scripts/analyze_extra.py              # ~3 min
+python scripts/analyze_travel.py             # ~30 min on 16 cores
+cd dashboard && python -m http.server 8765   # open http://127.0.0.1:8765/
 ```
 
 ## Caveats
@@ -72,8 +76,37 @@ python scripts/analyze.py       # ~2 min
 - Amazon derived its quality labels partly from factors that are not in the data, such as driver experience and customer feedback, so a modest AUC is expected.
 - Only the training split is used. The evaluation split contains only High routes, so it cannot be used to compare quality levels.
 
-## Data & license
+## License and attribution
 
-The data comes from the Amazon Last Mile Routing Research Challenge, published on the Registry of Open Data on AWS
-(`s3://amazon-last-mile-challenges/almrrc2021/`). Its use is subject to the dataset's license (CC BY-NC 4.0).
-The schema is documented at [MIT-CAVE/rc-cli](https://github.com/MIT-CAVE/rc-cli/blob/main/templates/data_structures.md).
+**This project, as published, is for non-commercial use only**, because the dataset it analyzes is licensed
+CC BY-NC 4.0. Everything else in the project (code, fonts, libraries, map data) also allows commercial use.
+To reuse the project commercially, keep the code and replace the data with data whose license allows it.
+
+### Data
+
+| Source | License | Use in this project |
+|---|---|---|
+| 2021 Amazon Last Mile Routing Research Challenge, Registry of Open Data on AWS (`s3://amazon-last-mile-challenges/almrrc2021/`) | [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) | All route, stop, package and travel-time data. **Non-commercial only; attribution required.** |
+| Merchán, D., Arora, J., Pachon, J., Konduri, K., Winkenbach, M., Parks, S., Noszek, J. (2024). *2021 Amazon Last Mile Routing Research Challenge: Data Set.* Transportation Science 58(1):8–11. [doi:10.1287/trsc.2022.1173](https://doi.org/10.1287/trsc.2022.1173) | © INFORMS, personal use | Cited as the dataset description. The PDF is not included in this repository. |
+| [us-atlas 3.0.1](https://github.com/topojson/us-atlas), from US Census Bureau cartographic boundaries | ISC; source data public domain | State outlines on the overview map |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via [OpenMapTiles](https://openmaptiles.org/) | ODbL 1.0 / CC BY 4.0 | Streets and buildings on the 3D route map |
+| [OpenFreeMap](https://openfreemap.org/) | Free, including commercial use | Vector basemap hosting for the 3D route map |
+
+The map attributions required by OpenStreetMap, OpenMapTiles and OpenFreeMap are shown on the 3D map.
+The dataset schema is documented at [MIT-CAVE/rc-cli](https://github.com/MIT-CAVE/rc-cli/blob/main/templates/data_structures.md).
+
+### Software and fonts
+
+| Component | License |
+|---|---|
+| [Outfit](https://fonts.google.com/specimen/Outfit) typeface, loaded from Google Fonts | SIL Open Font License 1.1 |
+| [Chart.js](https://www.chartjs.org/) 4.4.1 | MIT |
+| [MapLibre GL JS](https://maplibre.org/) 4.7.1 | BSD-3-Clause |
+| pandas, NumPy, scikit-learn | BSD-3-Clause |
+| Icons in the dashboard | Drawn for this project |
+
+### Names and design references
+
+- "Amazon" is used only to identify the data source. This project is not affiliated with or endorsed by Amazon.
+- The glass styling is inspired by Apple's Liquid Glass design language. No Apple assets are used, and "Liquid Glass" is Apple's name for it.
+- The chart styling takes visual cues from third-party dashboard mockups. No assets were copied from them.
