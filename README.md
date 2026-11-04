@@ -6,6 +6,8 @@ An analysis of **6,112 real Amazon delivery routes** from the
 Los Angeles, Austin, Chicago or Boston. Amazon labeled each route **High, Medium, or Low** based on
 how it was driven.
 
+**Live dashboard:** https://fakhorfafa.github.io/amazon_last_mile_routes/
+
 **Question:** Which features of the stop sequence a driver actually drove separate High-quality routes from the rest?
 
 ![Overview: stations on a US map with glass summary cards](docs/overview.png)
